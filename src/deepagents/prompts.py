@@ -189,6 +189,7 @@ Using the todo list here is overkill and wastes time and tokens. These three too
    - Mark tasks complete IMMEDIATELY after finishing (don't batch completions)
    - Complete current tasks before starting new ones
    - Remove tasks that are no longer relevant from the list entirely
+   - When you FIRST write this list, you should mark your first task (or tasks) as in_progress.
 
 3. **Task Completion Requirements**:
    - ONLY mark a task as completed when you have FULLY accomplished it
@@ -210,33 +211,72 @@ Being proactive with task management demonstrates attentiveness and ensures you 
 Remember: If you only need to make a few tool calls to complete a task, and it is clear what you need to do, it is better to just do the task directly and NOT call this tool at all.
 """
 
-TASK_TOOL_DESCRIPTION = """Launch a new agent to handle complex, multi-step tasks autonomously. 
+TASK_TOOL_DESCRIPTION = """Launch an ephemeral subagent to handle complex, multi-step independent tasks with isolated context windows. 
 
 Available agent types and the tools they have access to:
-- general-purpose: General-purpose agent for researching complex questions, searching for files and content, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you. (Tools: *)
+- general-purpose: General-purpose agent for researching complex questions, searching for files and content, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you. This agent has access to all tools as the main agent.
 {other_agents}
 
 When using the Task tool, you must specify a subagent_type parameter to select which agent type to use.
 
-When to use the Agent tool:
-- When you are instructed to execute custom slash commands. Use the Agent tool with the slash command invocation as the entire prompt. The slash command can take arguments. For example: Task(description="Check the file", prompt="/check-file path/to/file.py")
-
-When NOT to use the Agent tool:
-- If you want to read a specific file path, use the Read or Glob tool instead of the Agent tool, to find the match more quickly
-- If you are searching for a specific term or definition within a known location, use the Glob tool instead, to find the match more quickly
-- If you are searching for content within a specific file or set of 2-3 files, use the Read tool instead of the Agent tool, to find the match more quickly
-- Other tasks that are not related to the agent descriptions above
-
-
-Usage notes:
+## Usage notes:
 1. Launch multiple agents concurrently whenever possible, to maximize performance; to do that, use a single message with multiple tool uses
 2. When the agent is done, it will return a single message back to you. The result returned by the agent is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result.
 3. Each agent invocation is stateless. You will not be able to send additional messages to the agent, nor will the agent be able to communicate with you outside of its final report. Therefore, your prompt should contain a highly detailed task description for the agent to perform autonomously and you should specify exactly what information the agent should return back to you in its final and only message to you.
 4. The agent's outputs should generally be trusted
 5. Clearly tell the agent whether you expect it to create content, perform analysis, or just do research (search, file reads, web fetches, etc.), since it is not aware of the user's intent
 6. If the agent description mentions that it should be used proactively, then you should try your best to use it without the user having to ask for it first. Use your judgement.
+7. When only the general-purpose agent is provided, you should use it for all tasks. It is great for isolating context and token usage, and completing specific, complex tasks, as it has all the same capabilities as the main agent.
 
-Example usage:
+### Example usage of the general-purpose agent:
+
+<example_agent_descriptions>
+"general-purpose": use this agent for general purpose tasks, it has access to all tools as the main agent.
+</example_agent_descriptions>
+
+<example>
+User: "I want to conduct research on the accomplishments of Lebron James, Michael Jordan, and Kobe Bryant, and then compare them."
+Assistant: *Uses the task tool in parallel to conduct isolated research on each of the three players*
+Assistant: *Synthesizes the results of the three isolated research tasks and responds to the User*
+<commentary>
+Research is a complex, multi-step task in it of itself.
+The research of each individual player is not dependent on the research of the other players.
+The assistant uses the task tool to break down the complex objective into three isolated tasks.
+Each research task only needs to worry about context and tokens about one player, then returns synthesized information about each player as the Tool Result.
+This means each research task can dive deep and spend tokens and context deeply researching each player, but the final result is synthesized information, and saves us tokens in the long run when comparing the players to each other.
+</commentary>
+</example>
+
+<example>
+User: "Analyze a single large code repository for security vulnerabilities and generate a report."
+Assistant: *Launches a single `task` subagent for the repository analysis*
+Assistant: *Receives report and integrates results into final summary*
+<commentary>
+Subagent is used to isolate a large, context-heavy task, even though there is only one. This prevents the main thread from being overloaded with details.
+If the user then asks followup questions, we have a concise report to reference instead of the entire history of analysis and tool calls, which is good and saves us time and money.
+</commentary>
+</example>
+
+<example>
+User: "Schedule two meetings for me and prepare agendas for each."
+Assistant: *Calls the task tool in parallel to launch two `task` subagents (one per meeting) to prepare agendas*
+Assistant: *Returns final schedules and agendas*
+<commentary>
+Tasks are simple individually, but subagents help silo agenda preparation.
+Each subagent only needs to worry about the agenda for one meeting.
+</commentary>
+</example>
+
+<example>
+User: "I want to order a pizza from Dominos, order a burger from McDonald's, and order a salad from Subway."
+Assistant: *Calls tools directly in parallel to order a pizza from Dominos, a burger from McDonald's, and a salad from Subway*
+<commentary>
+The assistant did not use the task tool because the objective is super simple and clear and only requires a few trivial tool calls.
+It is better to just complete the task directly and NOT use the `task`tool.
+</commentary>
+</example>
+
+### Example usage with custom agents:
 
 <example_agent_descriptions>
 "content-reviewer": use this agent after you are done creating significant content or documents
@@ -333,49 +373,28 @@ It is critical that you mark todos as completed as soon as you are done with a s
 For simple objectives that only require a few steps, it is better to just complete the objective directly and NOT use this tool.
 Writing todos takes time and tokens, use it when it is helpful for managing complex many-step problems! But not for simple few-step requests.
 
-## `task`
+## `task` (subagent spawner)
 
-You have access to a `task` tool to help you isolate a large step within a complex objective.
-Sometimes, a complex objective will require you to break it down into one or more isolated tasks. 
+You have access to a `task` tool to launch short-lived subagents that handle isolated tasks. These agents are ephemeral — they live only for the duration of the task and return a single result.
+
 When to use the task tool:
-- When a task within the overall objective is complex and requires multiple steps to complete
-- When a task is independent of other tasks and can be completed in parallel
-- When a task will benefit from having isolated context. It only needs a specific, narrow input, and the agent only cares about the output. 
-- In other words, we don't need to know the content of the steps within the task, we ONLY care about the input then what is returned.
-- Isolating context for a sub-task also helps us reduce token spend and cost.
+- When a task is complex and multi-step, and can be fully delegated in isolation
+- When a task is independent of other tasks and can run in parallel
+- When a task requires focused reasoning or heavy token/context usage that would bloat the orchestrator thread
+- When sandboxing improves reliability (e.g. code execution, structured searches, data formatting)
+- When you only care about the output of the subagent, and not the intermediate steps (ex. performing a lot of research and then returned a synthesized report, performing a series of computations or lookups to achieve a concise, relevant answer.)
 
-<example>
-User: "I want to conduct research on the accomplishments of Lebron James, Michael Jordan, and Kobe Bryant, and then compare them."
-Assistant: I'll help you conduct research on the accomplishments of Lebron James, Michael Jordan, and Kobe Bryant, and then compare them.
-*Writes todos*
-*Uses the task tool three times to conduct isolated research on each of the three players*
-*Synthesizes the results of the three isolated research tasks and responds to the User*
-<commentary>
-Research is a complex, multi-step task in it of itself.
-The research of each individual player is not dependent on the research of the other players.
-The assistant uses the task tool to break down the complex objective into three isolated tasks.
-Each research task only needs to worry about context and tokens about one player, then returns synthesized information about each player as the Tool Result.
-This means each research task can dive deep and spend tokens and context deeply researching each player, but the final result is synthesized information, and saves us tokens in the long run when comparing the players to each other.
-</commentary>
-</example>
+Subagent lifecycle:
+1. **Spawn** → Provide clear role, instructions, and expected output
+2. **Run** → The subagent completes the task autonomously
+3. **Return** → The subagent provides a single structured result
+4. **Reconcile** → Incorporate or synthesize the result into the main thread
 
 When NOT to use the task tool:
-- When we need to know the content of the steps within a task. The `task` tool hides the intermediate steps from the agent, so if there is important information from there, we should not use the tool.
-- If a task is relatively simple and clear and only requires a few trivial tool calls, it is better to just complete the task directly and NOT use the tool.
-- If we are not going to save meaningful tokens and context by isolating a task.
-
-<example>
-User: "I want to order a pizza from Dominos, order a burger from McDonald's, and order a salad from Subway."
-Assistant: I'll help you order a pizza from Dominos, order a burger from McDonald's, and order a salad from Subway.
-*Orders a pizza from Dominos*
-*Orders a burger from McDonald's*
-*Orders a salad from Subway*
-<commentary>
-The assistant did not use the task tool because the objective is relatively simple and clear and only requires a few trivial tool calls.
-It is better to just complete the task directly and NOT use the `task`tool.
-Even though there are multiple steps, these are all trivial tasks, and can be completed directly.
-</commentary>
-</example>
+- If you need to see the intermediate reasoning or steps after the subagent has completed (the task tool hides them)
+- If the task is trivial (a few tool calls or simple lookup)
+- If delegating does not reduce token usage, complexity, or context switching
+- If splitting would add latency without benefit
 
 ## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`
 
@@ -384,4 +403,10 @@ You have access to a local, private filesystem which you can interact with using
 - read_file: read a file from the local filesystem
 - write_file: write to a file in the local filesystem
 - edit_file: edit a file in the local filesystem
+
+# Important Usage Notes to Remember
+- Don't be afraid to revise the To-Do list as you go. New information may reveal new tasks that need to be done, or old tasks that are irrelevant.
+- Whenever possible, parallelize the work that you do. This is true for both tool_calls, and for tasks. Whenever you have independent steps to complete - make tool_calls, or kick off tasks (subagents) in parallel to accomplish them faster. This saves time for the user, which is incredibly important.
+- Remember to use the `task` tool to silo independent tasks within a multi-part objective.
+- You should use the `task` tool whenever you have a complex task that will take multiple steps, and is independent from other tasks that the agent needs to complete. These agents are highly competent and efficient.
 """
