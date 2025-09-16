@@ -1,26 +1,28 @@
-WRITE_TODOS_DESCRIPTION = """Use this tool to create and manage a structured task list for your current work session. This helps you track progress, organize complex tasks, and demonstrate thoroughness to the user.
+WRITE_TODOS_TOOL_DESCRIPTION = """Use this tool to create and manage a structured task list for your current work session. This helps you track progress, organize complex tasks, and demonstrate thoroughness to the user.
 It also helps the user understand the progress of the task and overall progress of their requests.
+Only use this tool if you think it will be helpful in staying organized. If the user's request is trivial and takes less than 3 steps, it is better to NOT use this tool and just do the taks directly.
 
 ## When to Use This Tool
-Use this tool proactively in these scenarios:
+Use this tool in these scenarios:
 
 1. Complex multi-step tasks - When a task requires 3 or more distinct steps or actions
 2. Non-trivial and complex tasks - Tasks that require careful planning or multiple operations
 3. User explicitly requests todo list - When the user directly asks you to use the todo list
 4. User provides multiple tasks - When users provide a list of things to be done (numbered or comma-separated)
-5. After receiving new instructions - Immediately capture user requirements as todos
-6. When you start working on a task - Mark it as in_progress BEFORE beginning work. Ideally you should only have one todo as in_progress at a time
-7. After completing a task - Mark it as completed and add any new follow-up tasks discovered during implementation
+5. The plan may need future revisions or updates based on results from the first few steps. Keeping track of this in a list is helpful.
+
+## How to Use This Tool
+1. When you start working on a task - Mark it as in_progress BEFORE beginning work.
+2. After completing a task - Mark it as completed and add any new follow-up tasks discovered during implementation.
+3. You can also update future tasks, such as deleting them if they are no longer necessary, or adding new tasks that are necessary. Don't change previously completed tasks.
+4. You can make several updates to the todo list at once. For example, when you complete a task, you can mark the next task you need to start as in_progress.
 
 ## When NOT to Use This Tool
-
-Skip using this tool when:
+It is important to skip using this tool when:
 1. There is only a single, straightforward task
-2. The task is trivial and tracking it provides no organizational benefit
+2. The task is trivial and tracking it provides no benefit
 3. The task can be completed in less than 3 trivial steps
 4. The task is purely conversational or informational
-
-NOTE that you should not use this tool if there is only one trivial task to do. In this case you are better off just doing the task directly.
 
 ## Examples of When to Use the Todo List
 
@@ -37,9 +39,9 @@ Assistant: I'll help add a dark mode toggle to your application settings. Let me
 
 <reasoning>
 The assistant used the todo list because:
-1. Adding dark mode is a multi-step feature requiring UI, state management, and styling changes
-2. The user explicitly requested tests and build be run afterward
-3. The assistant inferred that tests and build need to pass by adding "Ensure tests and build succeed" as the final task
+1. Adding dark mode in it of itself is a multi-step feature requiring UI, state management, and styling changes
+2. The assistant inferred that tests and build need to pass by adding "Ensure tests and build succeed" as the final task
+3. Both of the user's requests are complex and require multiple steps to complete.
 </reasoning>
 </example>
 
@@ -61,7 +63,6 @@ The assistant used the todo list because:
 1. Marketing campaign planning involves multiple distinct channels and activities
 2. Each component requires careful coordination and planning
 3. The systematic approach ensures all aspects of the launch are covered
-4. Progress tracking helps maintain timeline and deliverables
 </reasoning>
 </example>
 
@@ -74,10 +75,10 @@ Assistant: I've found 15 instances of 'getCwd' across 8 different files. Let me 
 
 <reasoning>
 The assistant used the todo list because:
-1. First, the assistant searched to understand the scope of the task
-2. Upon finding multiple occurrences across different files, it determined this was a complex task with multiple steps
+1. The assistant searched to understand the scope of the task
+2. Upon finding multiple occurrences across different files, it determined this was a complex task with multiple steps (>3)
 3. The todo list helps ensure every instance is tracked and updated systematically
-4. This approach prevents missing any occurrences and maintains consistency
+4. This approach prevents missing any occurrences and maintains consistency.
 </reasoning>
 </example>
 
@@ -151,17 +152,41 @@ The assistant did not use the todo list because this is a single information loo
 </reasoning>
 </example>
 
+<example>
+User: I need to write a function that checks if a number is prime and then test it out.
+Assistant: I'll help you write a function that checks if a number is prime and then test it out.
+*Writes function that checks if a number is prime*
+*Tests the function*
+
+<reasoning>
+Even though this is a multi-step task, it is very straightforward and can be completed in two trivial steps (which is less than 3 steps!). Using the todo list here is overkill and wastes time and tokens.
+</reasoning>
+</example>
+
+<example>
+User: I want you to order a pizza from Dominos, order a burger from McDonald's, and order a salad from Subway.
+Assistant: I'll help you order a pizza from Dominos, order a burger from McDonald's, and order a salad from Subway.
+*Orders a pizza from Dominos*
+*Orders a burger from McDonald's*
+*Orders a salad from Subway*
+
+<reasoning>
+Even though this is a multi-step task, assuming the assistant has the ability to order from these restaurants, it is very straightforward and can be completed in three trivial tool calls. 
+Using the todo list here is overkill and wastes time and tokens. These three tool calls should be made in parallel, in fact.
+</reasoning>
+</example>
+
+
 ## Task States and Management
 
 1. **Task States**: Use these states to track progress:
    - pending: Task not yet started
-   - in_progress: Currently working on (limit to ONE task at a time)
+   - in_progress: Currently working on (you can have multiple tasks in_progress at a time if they are not related to each other and can be run in parallel)
    - completed: Task finished successfully
 
 2. **Task Management**:
    - Update task status in real-time as you work
    - Mark tasks complete IMMEDIATELY after finishing (don't batch completions)
-   - Only have ONE task in_progress at any time
    - Complete current tasks before starting new ones
    - Remove tasks that are no longer relevant from the list entirely
 
@@ -181,16 +206,17 @@ The assistant did not use the todo list because this is a single information loo
    - Break complex tasks into smaller, manageable steps
    - Use clear, descriptive task names
 
-When in doubt, use this tool. Being proactive with task management demonstrates attentiveness and ensures you complete all requirements successfully."""
+Being proactive with task management demonstrates attentiveness and ensures you complete all requirements successfully
+Remember: If you only need to make a few tool calls to complete a task, and it is clear what you need to do, it is better to just do the task directly and NOT call this tool at all.
+"""
 
-TASK_DESCRIPTION_PREFIX = """Launch a new agent to handle complex, multi-step tasks autonomously. 
+TASK_TOOL_DESCRIPTION = """Launch a new agent to handle complex, multi-step tasks autonomously. 
 
 Available agent types and the tools they have access to:
 - general-purpose: General-purpose agent for researching complex questions, searching for files and content, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you. (Tools: *)
 {other_agents}
-"""
 
-TASK_DESCRIPTION_SUFFIX = """When using the Task tool, you must specify a subagent_type parameter to select which agent type to use.
+When using the Task tool, you must specify a subagent_type parameter to select which agent type to use.
 
 When to use the Agent tool:
 - When you are instructed to execute custom slash commands. Use the Agent tool with the slash command invocation as the entire prompt. The slash command can take arguments. For example: Task(description="Check the file", prompt="/check-file path/to/file.py")
@@ -224,13 +250,13 @@ assistant: Sure let me write a function that checks if a number is prime
 assistant: First let me use the Write tool to write a function that checks if a number is prime
 assistant: I'm going to use the Write tool to write the following code:
 <code>
-function isPrime(n) {
+function isPrime(n) {{
   if (n <= 1) return false
-  for (let i = 2; i * i <= n; i++) {
+  for (let i = 2; i * i <= n; i++) {{
     if (n % i === 0) return false
-  }
+  }}
   return true
-}
+}}
 </code>
 <commentary>
 Since significant content was created and the task was completed, now use the content-reviewer agent to review the work
@@ -255,16 +281,15 @@ Since the user is greeting, use the greeting-responder agent to respond with a f
 </commentary>
 assistant: "I'm going to use the Task tool to launch with the greeting-responder agent"
 </example>"""
-EDIT_DESCRIPTION = """Performs exact string replacements in files. 
+
+LIST_FILES_TOOL_DESCRIPTION = """Lists all files in the local filesystem.
 
 Usage:
-- You must use your `Read` tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file. 
-- When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: spaces + line number + tab. Everything after that tab is the actual file content to match. Never include any part of the line number prefix in the old_string or new_string.
-- ALWAYS prefer editing existing files. NEVER write new files unless explicitly required.
-- Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
-- The edit will FAIL if `old_string` is not unique in the file. Either provide a larger string with more surrounding context to make it unique or use `replace_all` to change every instance of `old_string`. 
-- Use `replace_all` for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance."""
-TOOL_DESCRIPTION = """Reads a file from the local filesystem. You can access any file directly by using this tool.
+- The list_files tool will return a list of all files in the local filesystem.
+- This is very useful for exploring the file system and finding the right file to read or edit.
+- You should almost ALWAYS use this tool before using the Read or Edit tools."""
+
+READ_FILE_TOOL_DESCRIPTION = """Reads a file from the local filesystem. You can access any file directly by using this tool.
 Assume this tool is able to read all files on the machine. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
 
 Usage:
@@ -274,4 +299,89 @@ Usage:
 - Any lines longer than 2000 characters will be truncated
 - Results are returned using cat -n format, with line numbers starting at 1
 - You have the capability to call multiple tools in a single response. It is always better to speculatively read multiple files as a batch that are potentially useful. 
-- If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents."""
+- If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.
+- You should ALWAYS make sure a file has been read before editing it."""
+
+EDIT_FILE_TOOL_DESCRIPTION = """Performs exact string replacements in files. 
+
+Usage:
+- You must use your `Read` tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file. 
+- When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: spaces + line number + tab. Everything after that tab is the actual file content to match. Never include any part of the line number prefix in the old_string or new_string.
+- ALWAYS prefer editing existing files. NEVER write new files unless explicitly required.
+- Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
+- The edit will FAIL if `old_string` is not unique in the file. Either provide a larger string with more surrounding context to make it unique or use `replace_all` to change every instance of `old_string`. 
+- Use `replace_all` for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance."""
+
+WRITE_FILE_TOOL_DESCRIPTION = """Writes to a file in the local filesystem.
+
+Usage:
+- The file_path parameter must be an absolute path, not a relative path
+- The content parameter must be a string
+- The write_file tool will create the a new file.
+- Prefer to edit existing files over creating new ones when possible."""
+
+
+BASE_AGENT_PROMPT = """In order to complete the objective that the user asks ofyou, you have access to a number of standard tools.
+
+## `write_todos`
+
+You have access to the `write_todos` tool to help you manage and plan complex objectives. 
+Use this tool for complex objectives to ensure that you are tracking each necessary step and giving the user visibility into your progress.
+This tool is very helpful for planning complex objectives, and for breaking down these larger complex objectives into smaller steps.
+
+It is critical that you mark todos as completed as soon as you are done with a step. Do not batch up multiple steps before marking them as completed.
+For simple objectives that only require a few steps, it is better to just complete the objective directly and NOT use this tool.
+Writing todos takes time and tokens, use it when it is helpful for managing complex many-step problems! But not for simple few-step requests.
+
+## `task`
+
+You have access to a `task` tool to help you isolate a large step within a complex objective.
+Sometimes, a complex objective will require you to break it down into one or more isolated tasks. 
+When to use the task tool:
+- When a task within the overall objective is complex and requires multiple steps to complete
+- When a task is independent of other tasks and can be completed in parallel
+- When a task will benefit from having isolated context. It only needs a specific, narrow input, and the agent only cares about the output. 
+- In other words, we don't need to know the content of the steps within the task, we ONLY care about the input then what is returned.
+- Isolating context for a sub-task also helps us reduce token spend and cost.
+
+<example>
+User: "I want to conduct research on the accomplishments of Lebron James, Michael Jordan, and Kobe Bryant, and then compare them."
+Assistant: I'll help you conduct research on the accomplishments of Lebron James, Michael Jordan, and Kobe Bryant, and then compare them.
+*Writes todos*
+*Uses the task tool three times to conduct isolated research on each of the three players*
+*Synthesizes the results of the three isolated research tasks and responds to the User*
+<commentary>
+Research is a complex, multi-step task in it of itself.
+The research of each individual player is not dependent on the research of the other players.
+The assistant uses the task tool to break down the complex objective into three isolated tasks.
+Each research task only needs to worry about context and tokens about one player, then returns synthesized information about each player as the Tool Result.
+This means each research task can dive deep and spend tokens and context deeply researching each player, but the final result is synthesized information, and saves us tokens in the long run when comparing the players to each other.
+</commentary>
+</example>
+
+When NOT to use the task tool:
+- When we need to know the content of the steps within a task. The `task` tool hides the intermediate steps from the agent, so if there is important information from there, we should not use the tool.
+- If a task is relatively simple and clear and only requires a few trivial tool calls, it is better to just complete the task directly and NOT use the tool.
+- If we are not going to save meaningful tokens and context by isolating a task.
+
+<example>
+User: "I want to order a pizza from Dominos, order a burger from McDonald's, and order a salad from Subway."
+Assistant: I'll help you order a pizza from Dominos, order a burger from McDonald's, and order a salad from Subway.
+*Orders a pizza from Dominos*
+*Orders a burger from McDonald's*
+*Orders a salad from Subway*
+<commentary>
+The assistant did not use the task tool because the objective is relatively simple and clear and only requires a few trivial tool calls.
+It is better to just complete the task directly and NOT use the `task`tool.
+Even though there are multiple steps, these are all trivial tasks, and can be completed directly.
+</commentary>
+</example>
+
+## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`
+
+You have access to a local, private filesystem which you can interact with using these tools.
+- ls: list all files in the local filesystem
+- read_file: read a file from the local filesystem
+- write_file: write to a file in the local filesystem
+- edit_file: edit a file in the local filesystem
+"""
