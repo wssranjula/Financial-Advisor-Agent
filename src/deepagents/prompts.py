@@ -189,7 +189,8 @@ Using the todo list here is overkill and wastes time and tokens. These three too
    - Mark tasks complete IMMEDIATELY after finishing (don't batch completions)
    - Complete current tasks before starting new ones
    - Remove tasks that are no longer relevant from the list entirely
-   - When you FIRST write this list, you should mark your first task (or tasks) as in_progress.
+   - IMPORTANT: When you write this todo list, you should mark your first task (or tasks) as in_progress immediately!.
+   - IMPORTANT: Unless all tasks are completed, you should always have at least one task in_progress to show the user that you are working on something.
 
 3. **Task Completion Requirements**:
    - ONLY mark a task as completed when you have FULLY accomplished it
