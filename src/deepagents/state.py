@@ -1,6 +1,5 @@
 from langgraph.prebuilt.chat_agent_executor import AgentState
-from typing import NotRequired, Annotated
-from typing import Literal
+from typing import NotRequired, Annotated, Type, TypeVar, Literal
 from typing_extensions import TypedDict
 
 
@@ -23,3 +22,6 @@ def file_reducer(l, r):
 class DeepAgentState(AgentState):
     todos: NotRequired[list[Todo]]
     files: Annotated[NotRequired[dict[str, str]], file_reducer]
+
+StateSchema = TypeVar("StateSchema", bound=DeepAgentState)
+StateSchemaType = Type[StateSchema]

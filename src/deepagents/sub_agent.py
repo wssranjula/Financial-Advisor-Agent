@@ -1,5 +1,5 @@
 from deepagents.prompts import TASK_DESCRIPTION_PREFIX, TASK_DESCRIPTION_SUFFIX
-from deepagents.state import DeepAgentState
+from deepagents.state import StateSchema
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import BaseTool
 from typing_extensions import TypedDict
@@ -107,7 +107,7 @@ def _create_task_tool(
     async def task(
         description: str,
         subagent_type: str,
-        state: Annotated[DeepAgentState, InjectedState],
+        state: Annotated[StateSchema, InjectedState],
         tool_call_id: Annotated[str, InjectedToolCallId],
     ):
         if subagent_type not in agents:
@@ -149,7 +149,7 @@ def _create_sync_task_tool(
     def task(
         description: str,
         subagent_type: str,
-        state: Annotated[DeepAgentState, InjectedState],
+        state: Annotated[StateSchema, InjectedState],
         tool_call_id: Annotated[str, InjectedToolCallId],
     ):
         if subagent_type not in agents:
