@@ -22,7 +22,7 @@ def agent_builder(
     middleware: list[AgentMiddleware] = [],
     model: Optional[Union[str, LanguageModelLike]] = None,
     subagents: list[SubAgent | CustomSubAgent] = None,
-    config_schema: Optional[Type[Any]] = None,
+    context_schema: Optional[Type[Any]] = None,
     checkpointer: Optional[Checkpointer] = None,
     is_async: bool = False,
 ):
@@ -48,15 +48,15 @@ def agent_builder(
         *middleware,
     ]
 
-    if isinstance(model, ChatAnthropic):
-        deepagent_middleware.append(AnthropicPromptCachingMiddleware(ttl="5m"))
+    # if isinstance(model, ChatAnthropic):
+    #     deepagent_middleware.append(AnthropicPromptCachingMiddleware(ttl="5m"))
 
     return create_agent(
         model,
         prompt=instructions + "\n\n" + BASE_AGENT_PROMPT,
         tools=tools,
         middleware=deepagent_middleware,
-        config_schema=config_schema,
+        context_schema=context_schema,
         checkpointer=checkpointer,
     )
 
@@ -66,7 +66,7 @@ def create_deep_agent(
     middleware: list[AgentMiddleware] = [],
     model: Optional[Union[str, LanguageModelLike]] = None,
     subagents: list[SubAgent | CustomSubAgent] = None,
-    config_schema: Optional[Type[Any]] = None,
+    context_schema: Optional[Type[Any]] = None,
     checkpointer: Optional[Checkpointer] = None,
 ):
     return agent_builder(
@@ -75,7 +75,7 @@ def create_deep_agent(
         middleware=middleware,
         model=model,
         subagents=subagents,
-        config_schema=config_schema,
+        context_schema=context_schema,
         checkpointer=checkpointer,
         is_async=False,
     )
@@ -86,7 +86,7 @@ def async_create_deep_agent(
     middleware: list[AgentMiddleware] = [],
     model: Optional[Union[str, LanguageModelLike]] = None,
     subagents: list[SubAgent | CustomSubAgent] = None,
-    config_schema: Optional[Type[Any]] = None,
+    context_schema: Optional[Type[Any]] = None,
     checkpointer: Optional[Checkpointer] = None,
 ):
     return agent_builder(
@@ -95,7 +95,7 @@ def async_create_deep_agent(
         middleware=middleware,
         model=model,
         subagents=subagents,
-        config_schema=config_schema,
+        context_schema=context_schema,
         checkpointer=checkpointer,
         is_async=True,
     )

@@ -33,7 +33,7 @@ class PlanningMiddleware(AgentMiddleware):
     state_schema = PlanningState
     tools = [write_todos]
 
-    def modify_model_request(self, request: ModelRequest, agent_state: AgentState) -> ModelRequest:
+    def modify_model_request(self, request: ModelRequest, agent_state: PlanningState) -> ModelRequest:
         request.system_prompt = request.system_prompt + "\n\n" + WRITE_TODOS_SYSTEM_PROMPT
         return request
 
@@ -54,7 +54,7 @@ class FilesystemMiddleware(AgentMiddleware):
     state_schema = FilesystemState
     tools = [ls, read_file, write_file, edit_file]
 
-    def modify_model_request(self, request: ModelRequest, agent_state: AgentState) -> ModelRequest:
+    def modify_model_request(self, request: ModelRequest, agent_state: FilesystemState) -> ModelRequest:
         request.system_prompt = request.system_prompt + "\n\n" + FILESYSTEM_SYSTEM_PROMPT
         return request
 
@@ -99,7 +99,7 @@ def _get_agents(
             middleware=[
                 PlanningMiddleware(),
                 FilesystemMiddleware(),
-                AnthropicPromptCachingMiddleware(ttl="5m"),
+                # AnthropicPromptCachingMiddleware(ttl="5m"),
                 SummarizationMiddleware(
                     model=model,
                     max_tokens_before_summary=20000,
