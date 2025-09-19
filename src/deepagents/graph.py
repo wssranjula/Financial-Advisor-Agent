@@ -217,3 +217,45 @@ def async_create_deep_agent(
         main_agent_tools=main_agent_tools,
         is_async=True,
     )
+
+############################
+# Graph V1
+############################
+
+from langchain.agents import create_agent
+from langchain.agents.middleware import AgentMiddleware
+from deepagents.middleware import PlanningMiddleware, FilesystemMiddleware, SubAgentMiddleware
+
+def create_deep_agent_v1(
+    tools: Sequence[Union[BaseTool, Callable, dict[str, Any]]],
+    instructions: str,
+    middleware: list[AgentMiddleware] = [],
+    model: Optional[Union[str, LanguageModelLike]] = None,
+    subagents: list[SubAgent | CustomSubAgent] = None,
+    config_schema: Optional[Type[Any]] = None,
+    checkpointer: Optional[Checkpointer] = None,
+):
+    if model is None:
+        model = get_default_model()
+
+    deepagent_middleware = [
+        PlanningMiddleware(),
+        # FilesystemMiddleware(),
+        # SubAgentMiddleware(
+        #     tools=tools,
+        #     instructions=instructions,
+        #     subagents=subagents,
+        #     model=model,
+        #     is_async=False,
+        # ),
+        *middleware,
+    ]
+
+    return create_agent(
+        model,
+        prompt=instructions,
+        tools=tools,
+        middleware=deepagent_middleware,
+        config_schema=config_schema,
+        checkpointer=checkpointer,
+    )
