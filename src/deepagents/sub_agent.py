@@ -1,4 +1,4 @@
-from deepagents.prompts import TASK_TOOL_DESCRIPTION
+from deepagents.prompts import TASK_TOOL_DESCRIPTION, BASE_AGENT_PROMPT
 from deepagents.state import DeepAgentState
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import BaseTool
@@ -40,7 +40,7 @@ def _get_agents(
     agents = {
         "general-purpose": create_react_agent(
             model,
-            prompt=instructions,
+            prompt=BASE_AGENT_PROMPT,
             tools=tools,
             checkpointer=False,
             post_model_hook=post_model_hook,
@@ -87,7 +87,7 @@ def _get_subagent_description(subagents: list[SubAgent | CustomSubAgent]):
     return [f"- {_agent['name']}: {_agent['description']}" for _agent in subagents]
 
 
-def _create_task_tool(
+def create_task_tool(
     tools,
     instructions,
     subagents: list[SubAgent | CustomSubAgent],
@@ -128,7 +128,7 @@ def _create_task_tool(
     return task
 
 
-def _create_sync_task_tool(
+def create_sync_task_tool(
     tools,
     instructions,
     subagents: list[SubAgent | CustomSubAgent],

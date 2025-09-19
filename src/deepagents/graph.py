@@ -1,6 +1,6 @@
 from deepagents.sub_agent import (
-    _create_task_tool,
-    _create_sync_task_tool,
+    create_task_tool,
+    create_sync_task_tool,
     SubAgent,
     CustomSubAgent,
 )
@@ -66,7 +66,7 @@ def _agent_builder(
         selected_post_model_hook = None
 
     if not is_async:
-        task_tool = _create_sync_task_tool(
+        task_tool = create_sync_task_tool(
             list(tools) + built_in_tools,
             instructions,
             subagents or [],
@@ -75,7 +75,7 @@ def _agent_builder(
             selected_post_model_hook,
         )
     else:
-        task_tool = _create_task_tool(
+        task_tool = create_task_tool(
             list(tools) + built_in_tools,
             instructions,
             subagents or [],
@@ -225,6 +225,12 @@ def async_create_deep_agent(
 from langchain.agents import create_agent
 from langchain.agents.middleware import AgentMiddleware
 from deepagents.middleware import PlanningMiddleware, FilesystemMiddleware, SubAgentMiddleware
+from langchain.agents.middleware import SummarizationMiddleware
+from langchain.agents.middleware.prompt_caching import AnthropicPromptCachingMiddleware
+from langchain.chat_models import init_chat_model
+from langchain_anthropic import ChatAnthropic
+
+
 
 def create_deep_agent_v1(
     tools: Sequence[Union[BaseTool, Callable, dict[str, Any]]],
@@ -237,19 +243,29 @@ def create_deep_agent_v1(
 ):
     if model is None:
         model = get_default_model()
+    elif isinstance(model, str):
+        model = init_chat_model(model)
 
     deepagent_middleware = [
         PlanningMiddleware(),
-        # FilesystemMiddleware(),
-        # SubAgentMiddleware(
-        #     tools=tools,
-        #     instructions=instructions,
-        #     subagents=subagents,
-        #     model=model,
-        #     is_async=False,
-        # ),
+        FilesystemMiddleware(),
+        SubAgentMiddleware(
+            tools=tools,
+            instructions=instructions,
+            subagents=subagents,
+            model=model,
+            is_async=False,
+        ),
+        SummarizationMiddleware(
+            model=model,
+            max_tokens_before_summary=20000,    # NOTE: To tweak
+            messages_to_keep=20,
+        ),
         *middleware,
     ]
+
+    if isinstance(model, ChatAnthropic):
+        deepagent_middleware.append(AnthropicPromptCachingMiddleware(ttl="5m"))
 
     return create_agent(
         model,

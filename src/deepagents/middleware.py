@@ -5,8 +5,11 @@ from deepagents.state import Todo, file_reducer
 from typing import NotRequired, Annotated
 from deepagents.tools import write_todos, ls, read_file, write_file, edit_file
 from deepagents.prompts import WRITE_TODOS_SYSTEM_PROMPT, TASK_SYSTEM_PROMPT, FILESYSTEM_SYSTEM_PROMPT
-from deepagents.sub_agent import SubAgent, CustomSubAgent, _create_sync_task_tool, _create_task_tool
+from deepagents.sub_agent import SubAgent, CustomSubAgent, create_sync_task_tool, create_task_tool
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 ###############################
 # Current Limitations
@@ -23,8 +26,8 @@ class PlanningMiddleware(AgentMiddleware):
     tools = [write_todos]
 
     def modify_model_request(self, request: ModelRequest, agent_state: AgentState) -> ModelRequest:
-        print(request)
         request.system_prompt = request.system_prompt + "\n\n" + WRITE_TODOS_SYSTEM_PROMPT
+        return request
 
     # TODO: Prune out more than one call of write_todos in parallel.
     # def after_model(self, state: AgentState) -> dict[str, Any] | None:
@@ -41,6 +44,7 @@ class FilesystemMiddleware(AgentMiddleware):
 
     def modify_model_request(self, request: ModelRequest, agent_state: AgentState) -> ModelRequest:
         request.system_prompt = request.system_prompt + "\n\n" + FILESYSTEM_SYSTEM_PROMPT
+        return request
 
 class SubAgentMiddleware(AgentMiddleware):
     def __init__(
@@ -55,7 +59,7 @@ class SubAgentMiddleware(AgentMiddleware):
         super().__init__()
         if is_async:
             self.tools = [
-                _create_task_tool(
+                create_task_tool(
                     tools=tools,
                     instructions=instructions,
                     subagents=subagents,
@@ -65,7 +69,7 @@ class SubAgentMiddleware(AgentMiddleware):
             ]
         else:
             self.tools = [
-                _create_sync_task_tool(
+                create_sync_task_tool(
                     tools=tools,
                     instructions=instructions,
                     subagents=subagents,
@@ -76,3 +80,4 @@ class SubAgentMiddleware(AgentMiddleware):
 
     def modify_model_request(self, request: ModelRequest, agent_state: AgentState) -> ModelRequest:
         request.system_prompt = request.system_prompt + "\n\n" + TASK_SYSTEM_PROMPT
+        return request
