@@ -1,6 +1,4 @@
 from deepagents.prompts import TASK_TOOL_DESCRIPTION, BASE_AGENT_PROMPT
-from deepagents.state import DeepAgentState
-from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import BaseTool
 from typing_extensions import TypedDict
 from langchain_core.tools import tool, InjectedToolCallId
@@ -10,9 +8,11 @@ from langchain.chat_models import init_chat_model
 from typing import Annotated, NotRequired, Any, Union, Optional, Callable
 from langgraph.types import Command
 from langchain_core.runnables import Runnable
-
+from langchain.agents import create_agent
 from langgraph.prebuilt import InjectedState
-
+from langchain.agents.middleware import AgentMiddleware
+from langchain.agents.middleware.prompt_caching import AnthropicPromptCachingMiddleware
+from langchain.agents.middleware import SummarizationMiddleware
 
 class SubAgent(TypedDict):
     name: str
@@ -21,6 +21,7 @@ class SubAgent(TypedDict):
     tools: NotRequired[list[str]]
     # Optional per-subagent model: can be either a model instance OR dict settings
     model: NotRequired[Union[LanguageModelLike, dict[str, Any]]]
+    middleware: NotRequired[list[AgentMiddleware]]
 
 
 class CustomSubAgent(TypedDict):
@@ -31,20 +32,24 @@ class CustomSubAgent(TypedDict):
 
 def _get_agents(
     tools,
-    instructions,
     subagents: list[SubAgent | CustomSubAgent],
-    model,
-    state_schema,
-    post_model_hook: Optional[Callable] = None,
+    model
 ):
     agents = {
-        "general-purpose": create_react_agent(
+        # NOTE: The general-purpose agent gets todos and files, but not subagents.
+        "general-purpose": create_agent(
             model,
             prompt=BASE_AGENT_PROMPT,
             tools=tools,
             checkpointer=False,
-            post_model_hook=post_model_hook,
-            state_schema=state_schema,
+            middleware=[
+                AnthropicPromptCachingMiddleware(ttl="5m"),
+                SummarizationMiddleware(
+                    model=model,
+                    max_tokens_before_summary=20000,
+                    messages_to_keep=20,
+                ),
+            ]
         )
     }
     tools_by_name = {}
@@ -72,13 +77,12 @@ def _get_agents(
         else:
             # Fallback to main model
             sub_model = model
-        agents[_agent["name"]] = create_react_agent(
+        agents[_agent["name"]] = create_agent(
             sub_model,
             prompt=_agent["prompt"],
             tools=_tools,
-            state_schema=state_schema,
+            middleware=_agent["middleware"],
             checkpointer=False,
-            post_model_hook=post_model_hook,
         )
     return agents
 
@@ -89,81 +93,63 @@ def _get_subagent_description(subagents: list[SubAgent | CustomSubAgent]):
 
 def create_task_tool(
     tools,
-    instructions,
     subagents: list[SubAgent | CustomSubAgent],
     model,
-    state_schema,
-    post_model_hook: Optional[Callable] = None,
+    is_async: bool = False,
 ):
     agents = _get_agents(
-        tools, instructions, subagents, model, state_schema, post_model_hook
+        tools, subagents, model
     )
     other_agents_string = _get_subagent_description(subagents)
 
-    @tool(
-        description=TASK_TOOL_DESCRIPTION.format(other_agents=other_agents_string)
-    )
-    async def task(
-        description: str,
-        subagent_type: str,
-        state: Annotated[DeepAgentState, InjectedState],
-        tool_call_id: Annotated[str, InjectedToolCallId],
-    ):
-        if subagent_type not in agents:
-            return f"Error: invoked agent of type {subagent_type}, the only allowed types are {[f'`{k}`' for k in agents]}"
-        sub_agent = agents[subagent_type]
-        state["messages"] = [{"role": "user", "content": description}]
-        result = await sub_agent.ainvoke(state)
-        return Command(
-            update={
-                "files": result.get("files", {}),
-                "messages": [
-                    ToolMessage(
-                        result["messages"][-1].content, tool_call_id=tool_call_id
-                    )
-                ],
-            }
+    if is_async:
+        @tool(
+            description=TASK_TOOL_DESCRIPTION.format(other_agents=other_agents_string)
         )
-
-    return task
-
-
-def create_sync_task_tool(
-    tools,
-    instructions,
-    subagents: list[SubAgent | CustomSubAgent],
-    model,
-    state_schema,
-    post_model_hook: Optional[Callable] = None,
-):
-    agents = _get_agents(
-        tools, instructions, subagents, model, state_schema, post_model_hook
-    )
-    other_agents_string = _get_subagent_description(subagents)
-
-    @tool(
-        description=TASK_TOOL_DESCRIPTION.format(other_agents=other_agents_string)
-    )
-    def task(
-        description: str,
-        subagent_type: str,
-        state: Annotated[DeepAgentState, InjectedState],
-        tool_call_id: Annotated[str, InjectedToolCallId],
-    ):
-        if subagent_type not in agents:
-            return f"Error: invoked agent of type {subagent_type}, the only allowed types are {[f'`{k}`' for k in agents]}"
-        sub_agent = agents[subagent_type]
-        state["messages"] = [{"role": "user", "content": description}]
-        result = sub_agent.invoke(state)
-        return Command(
-            update={
-                "files": result.get("files", {}),
-                "messages": [
-                    ToolMessage(
-                        result["messages"][-1].content, tool_call_id=tool_call_id
-                    )
-                ],
-            }
+        async def task(
+            description: str,
+            subagent_type: str,
+            state: Annotated[dict, InjectedState],
+            tool_call_id: Annotated[str, InjectedToolCallId],
+        ):
+            if subagent_type not in agents:
+                return f"Error: invoked agent of type {subagent_type}, the only allowed types are {[f'`{k}`' for k in agents]}"
+            sub_agent = agents[subagent_type]
+            state["messages"] = [{"role": "user", "content": description}]
+            result = await sub_agent.ainvoke(state)
+            return Command(
+                update={
+                    "files": result.get("files", {}),
+                    "messages": [
+                        ToolMessage(
+                            result["messages"][-1].content, tool_call_id=tool_call_id
+                        )
+                    ],
+                }
+            )
+    else: 
+        @tool(
+            description=TASK_TOOL_DESCRIPTION.format(other_agents=other_agents_string)
         )
-
+        def task(
+            description: str,
+            subagent_type: str,
+            state: Annotated[dict, InjectedState],
+            tool_call_id: Annotated[str, InjectedToolCallId],
+        ):
+            if subagent_type not in agents:
+                return f"Error: invoked agent of type {subagent_type}, the only allowed types are {[f'`{k}`' for k in agents]}"
+            sub_agent = agents[subagent_type]
+            state["messages"] = [{"role": "user", "content": description}]
+            result = sub_agent.invoke(state)
+            return Command(
+                update={
+                    "files": result.get("files", {}),
+                    "messages": [
+                        ToolMessage(
+                            result["messages"][-1].content, tool_call_id=tool_call_id
+                        )
+                    ],
+                }
+            )
     return task

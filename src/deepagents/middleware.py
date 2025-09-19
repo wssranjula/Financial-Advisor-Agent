@@ -5,7 +5,7 @@ from deepagents.state import Todo, file_reducer
 from typing import NotRequired, Annotated
 from deepagents.tools import write_todos, ls, read_file, write_file, edit_file
 from deepagents.prompts import WRITE_TODOS_SYSTEM_PROMPT, TASK_SYSTEM_PROMPT, FILESYSTEM_SYSTEM_PROMPT
-from deepagents.sub_agent import SubAgent, CustomSubAgent, create_sync_task_tool, create_task_tool
+from deepagents.sub_agent import SubAgent, CustomSubAgent, create_task_tool
 
 import logging
 
@@ -50,33 +50,19 @@ class SubAgentMiddleware(AgentMiddleware):
     def __init__(
         self,
         tools,
-        instructions,
         subagents: list[SubAgent | CustomSubAgent],
         model,
-        state_schema=None,
         is_async=False,
     ) -> None:
         super().__init__()
-        if is_async:
-            self.tools = [
-                create_task_tool(
-                    tools=tools,
-                    instructions=instructions,
-                    subagents=subagents,
-                    model=model,
-                    state_schema=state_schema or None,
-                )
-            ]
-        else:
-            self.tools = [
-                create_sync_task_tool(
-                    tools=tools,
-                    instructions=instructions,
-                    subagents=subagents,
-                    model=model,
-                    state_schema=state_schema or None,
-                )
-            ]
+        self.tools = [
+            create_task_tool(
+                tools=tools,
+                subagents=subagents,
+                model=model,
+                is_async=is_async,
+            )
+        ]
 
     def modify_model_request(self, request: ModelRequest, agent_state: AgentState) -> ModelRequest:
         request.system_prompt = request.system_prompt + "\n\n" + TASK_SYSTEM_PROMPT
