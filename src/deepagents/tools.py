@@ -29,7 +29,7 @@ def write_todos(
 
 
 @tool(description=LIST_FILES_TOOL_DESCRIPTION)
-def ls(state: Annotated[AgentState, InjectedState]) -> list[str]:
+def ls(state: Annotated[dict, InjectedState]) -> list[str]:
     """List all files"""
     return list(state.get("files", {}).keys())
 

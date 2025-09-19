@@ -89,6 +89,16 @@ def _get_agents(
     subagents: list[SubAgent | CustomSubAgent],
     model
 ):
+    default_subagent_middleware = [
+        PlanningMiddleware(),
+        FilesystemMiddleware(),
+        # AnthropicPromptCachingMiddleware(ttl="5m"),
+        SummarizationMiddleware(
+            model=model,
+            max_tokens_before_summary=20000,
+            messages_to_keep=20,
+        ),
+    ]
     agents = {
         # NOTE: The general-purpose agent gets todos and files, but not subagents.
         "general-purpose": create_agent(
@@ -96,16 +106,7 @@ def _get_agents(
             prompt=BASE_AGENT_PROMPT,
             tools=tools,
             checkpointer=False,
-            middleware=[
-                PlanningMiddleware(),
-                FilesystemMiddleware(),
-                # AnthropicPromptCachingMiddleware(ttl="5m"),
-                SummarizationMiddleware(
-                    model=model,
-                    max_tokens_before_summary=20000,
-                    messages_to_keep=20,
-                ),
-            ]
+            middleware=default_subagent_middleware
         )
     }
     tools_by_name = {}
@@ -137,7 +138,10 @@ def _get_agents(
             sub_model,
             prompt=_agent["prompt"],
             tools=_tools,
-            middleware=_agent["middleware"],
+            middleware=[
+                *default_subagent_middleware,
+                *_agent["middleware"],
+            ],
             checkpointer=False,
         )
     return agents
@@ -198,6 +202,7 @@ def create_task_tool(
             sub_agent = agents[subagent_type]
             state["messages"] = [{"role": "user", "content": description}]
             result = sub_agent.invoke(state)
+            # TODO: Write back all keys from the result to parent graph EXCEPT for todos
             return Command(
                 update={
                     "files": result.get("files", {}),
