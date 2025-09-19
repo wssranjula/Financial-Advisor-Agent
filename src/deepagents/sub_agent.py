@@ -13,6 +13,7 @@ from langgraph.prebuilt import InjectedState
 from langchain.agents.middleware import AgentMiddleware
 from langchain.agents.middleware.prompt_caching import AnthropicPromptCachingMiddleware
 from langchain.agents.middleware import SummarizationMiddleware
+from deepagents.middleware import PlanningMiddleware, FilesystemMiddleware
 
 class SubAgent(TypedDict):
     name: str
@@ -43,6 +44,8 @@ def _get_agents(
             tools=tools,
             checkpointer=False,
             middleware=[
+                PlanningMiddleware(),
+                FilesystemMiddleware(),
                 AnthropicPromptCachingMiddleware(ttl="5m"),
                 SummarizationMiddleware(
                     model=model,

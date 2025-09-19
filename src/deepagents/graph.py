@@ -15,6 +15,7 @@ from langchain.agents.middleware import SummarizationMiddleware
 from langchain.agents.middleware.prompt_caching import AnthropicPromptCachingMiddleware
 from langchain.chat_models import init_chat_model
 from langchain_anthropic import ChatAnthropic
+from deepagents.prompts import BASE_AGENT_PROMPT
 
 StateSchema = TypeVar("StateSchema", bound=DeepAgentState)
 StateSchemaType = Type[StateSchema]
@@ -56,7 +57,7 @@ def agent_builder(
 
     return create_agent(
         model,
-        prompt=instructions,
+        prompt=instructions + "\n\n" + BASE_AGENT_PROMPT,
         tools=tools,
         middleware=deepagent_middleware,
         config_schema=config_schema,
