@@ -1,21 +1,17 @@
-from deepagents.sub_agent import (
-    SubAgent,
-    CustomSubAgent,
-)
-from deepagents.model import get_default_model
-from deepagents.state import DeepAgentState
 from typing import Sequence, Union, Callable, Any, TypeVar, Type, Optional
 from langchain_core.tools import BaseTool
 from langchain_core.language_models import LanguageModelLike
 from langgraph.types import Checkpointer
 from langchain.agents import create_agent
-from langchain.agents.middleware import AgentMiddleware
-from deepagents.middleware import PlanningMiddleware, FilesystemMiddleware, SubAgentMiddleware
-from langchain.agents.middleware import SummarizationMiddleware
+from langchain.agents.middleware import AgentMiddleware, SummarizationMiddleware
 from langchain.agents.middleware.prompt_caching import AnthropicPromptCachingMiddleware
 from langchain.chat_models import init_chat_model
 from langchain_anthropic import ChatAnthropic
+from deepagents.middleware import PlanningMiddleware, FilesystemMiddleware, SubAgentMiddleware
 from deepagents.prompts import BASE_AGENT_PROMPT
+from deepagents.model import get_default_model
+from deepagents.state import DeepAgentState
+from deepagents.types import SubAgent, CustomSubAgent
 
 StateSchema = TypeVar("StateSchema", bound=DeepAgentState)
 StateSchemaType = Type[StateSchema]

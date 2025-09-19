@@ -3,6 +3,7 @@ from langgraph.types import Command
 from langchain_core.messages import ToolMessage
 from typing import Annotated, Union
 from langgraph.prebuilt import InjectedState
+from langchain.agents.middleware import AgentState
 
 from deepagents.prompts import (
     WRITE_TODOS_TOOL_DESCRIPTION,
@@ -29,7 +30,7 @@ def write_todos(
 
 
 @tool(description=LIST_FILES_TOOL_DESCRIPTION)
-def ls(state: Annotated[dict, InjectedState]) -> list[str]:
+def ls(state: Annotated[AgentState, InjectedState]) -> list[str]:
     """List all files"""
     return list(state.get("files", {}).keys())
 
@@ -37,7 +38,7 @@ def ls(state: Annotated[dict, InjectedState]) -> list[str]:
 @tool(description=READ_FILE_TOOL_DESCRIPTION)
 def read_file(
     file_path: str,
-    state: Annotated[dict, InjectedState],
+    state: Annotated[AgentState, InjectedState],
     offset: int = 0,
     limit: int = 2000,
 ) -> str:
@@ -83,7 +84,7 @@ def read_file(
 def write_file(
     file_path: str,
     content: str,
-    state: Annotated[dict, InjectedState],
+    state: Annotated[AgentState, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> Command:
     files = state.get("files", {})
@@ -103,7 +104,7 @@ def edit_file(
     file_path: str,
     old_string: str,
     new_string: str,
-    state: Annotated[dict, InjectedState],
+    state: Annotated[AgentState, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
     replace_all: bool = False,
 ) -> Union[Command, str]:
