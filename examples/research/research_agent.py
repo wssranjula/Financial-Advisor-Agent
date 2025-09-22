@@ -2,22 +2,21 @@ import os
 from typing import Literal
 
 from tavily import TavilyClient
+from langchain_core.tools import tool
 
-
-from deepagents import create_deep_agent, SubAgent
+from deepagents import create_deep_agent
 
 # It's best practice to initialize the client once and reuse it.
 tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
 
-
 # Search tool to use to do research
+@tool(description="Use this tool to run a web search")
 def internet_search(
     query: str,
     max_results: int = 5,
     topic: Literal["general", "news", "finance"] = "general",
     include_raw_content: bool = False,
 ):
-    """Run a web search"""
     search_docs = tavily_client.search(
         query,
         max_results=max_results,
@@ -37,7 +36,7 @@ research_sub_agent = {
     "name": "research-agent",
     "description": "Used to research more in depth questions. Only give this researcher one topic at a time. Do not pass multiple sub questions to this researcher. Instead, you should break down a large topic into the necessary components, and then call multiple research agents in parallel, one for each sub question.",
     "prompt": sub_research_prompt,
-    "tools": ["internet_search"],
+    "tools": [internet_search],
     "middleware": []
 }
 
@@ -163,7 +162,7 @@ Use this to run an internet search for a given query. You can specify the number
 
 # Create the agent
 agent = create_deep_agent(
-    [internet_search],
-    research_instructions,
+    tools=[internet_search],
+    instructions=research_instructions,
     subagents=[critique_sub_agent, research_sub_agent],
 ).with_config({"recursion_limit": 1000})
