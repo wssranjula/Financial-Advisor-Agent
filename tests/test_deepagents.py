@@ -2,7 +2,7 @@ from deepagents.graph import create_deep_agent
 from langchain_core.tools import tool
 from langchain.agents.middleware import AgentMiddleware
 from typing import Annotated
-from langgraph.prebuilt import InjectedState
+from langgraph.agents.tool_node import InjectedState
 from langchain.agents.middleware import AgentMiddleware, AgentState
 
 def assert_all_deepagent_qualities(agent):

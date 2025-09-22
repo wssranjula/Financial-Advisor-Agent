@@ -2,7 +2,7 @@ from langchain.agents.middleware import AgentState
 from langchain_core.tools import tool, InjectedToolCallId
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
-from langgraph.prebuilt import InjectedState
+from langchain.agents.tool_node import InjectedState
 from typing import Annotated, Union
 from deepagents.state import Todo
 from deepagents.prompts import (
