@@ -1,4 +1,4 @@
-from deepagents import create_deep_agent, async_create_deep_agent, SubAgent
+from deepagents import create_deep_agent, async_create_deep_agent
 from langchain_core.tools import BaseTool, tool
 from pydantic import BaseModel
 from typing import Any, Optional
@@ -35,7 +35,7 @@ def create_configurable_agent(
         else:
             config = {}
         config_fields = {
-            k: v for k, v in config.items() if k in ["instructions", "subagents"]
+            k: v for k, v in config.items() if k in ["instructions", "subagents", "tools"]
         }
         config = AgentConfig(**config_fields)
         subagents_with_tools = [
@@ -76,7 +76,7 @@ def async_create_configurable_agent(
         else:
             config = {}
         config_fields = {
-            k: v for k, v in config.items() if k in ["instructions", "subagents"]
+            k: v for k, v in config.items() if k in ["instructions", "subagents", "tools"]
         }
         config = AgentConfig(**config_fields)
         subagents_with_tools = [

@@ -77,7 +77,6 @@ class SubAgentMiddleware(AgentMiddleware):
             model=model,
             is_async=is_async,
         )
-        print("Task tool:", task_tool)
         self.tools = [task_tool]
 
     def modify_model_request(self, request: ModelRequest, agent_state: AgentState) -> ModelRequest:
@@ -92,6 +91,7 @@ def _get_agents(
     default_subagent_middleware = [
         PlanningMiddleware(),
         FilesystemMiddleware(),
+        # TODO: Add this back when fixed
         # AnthropicPromptCachingMiddleware(ttl="5m"),
         SummarizationMiddleware(
             model=model,
@@ -166,13 +166,12 @@ def create_task_tool(
         async def task(
             description: str,
             subagent_type: str,
-            # state: Annotated[AgentState, InjectedState],
+            state: Annotated[AgentState, InjectedState],
             tool_call_id: Annotated[str, InjectedToolCallId],
         ):
             if subagent_type not in agents:
                 return f"Error: invoked agent of type {subagent_type}, the only allowed types are {[f'`{k}`' for k in agents]}"
             sub_agent = agents[subagent_type]
-            state = {}
             state["messages"] = [{"role": "user", "content": description}]
             result = await sub_agent.ainvoke(state)
             state_update = {}
@@ -196,13 +195,12 @@ def create_task_tool(
         def task(
             description: str,
             subagent_type: str,
-            # state: Annotated[AgentState, InjectedState],
+            state: Annotated[AgentState, InjectedState],
             tool_call_id: Annotated[str, InjectedToolCallId],
         ):
             if subagent_type not in agents:
                 return f"Error: invoked agent of type {subagent_type}, the only allowed types are {[f'`{k}`' for k in agents]}"
             sub_agent = agents[subagent_type]
-            state = {}
             state["messages"] = [{"role": "user", "content": description}]
             result = sub_agent.invoke(state)
             state_update = {}
