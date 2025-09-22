@@ -1,9 +1,9 @@
 from deepagents.graph import create_deep_agent
-from deepagents.state import AgentState
 from langchain_core.tools import tool
 from langchain.agents.middleware import AgentMiddleware
 from typing import Annotated
 from langgraph.prebuilt import InjectedState
+from langchain.agents.middleware import AgentMiddleware, AgentState
 
 def assert_all_deepagent_qualities(agent):
     assert "todos" in agent.stream_channels
@@ -32,7 +32,6 @@ class SampleMiddlewareWithTools(AgentMiddleware):
 class SampleMiddlewareWithToolsAndState(AgentMiddleware):
     state_schema = SampleState
     tools = [sample_tool]
-
 
 class TestDeepAgents:
     def test_base_deep_agent(self):
