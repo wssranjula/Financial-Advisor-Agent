@@ -7,7 +7,7 @@ from langchain_core.tools import BaseTool, tool, InjectedToolCallId
 from langchain_core.messages import ToolMessage
 from langchain.chat_models import init_chat_model
 from langgraph.types import Command
-from langgraph.prebuilt import InjectedState
+from langchain.agents.tool_node import InjectedState
 from typing import NotRequired, Annotated
 from deepagents.state import Todo, file_reducer
 from deepagents.tools import write_todos, ls, read_file, write_file, edit_file
