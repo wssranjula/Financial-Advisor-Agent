@@ -76,6 +76,26 @@ def create_deep_agent(
     checkpointer: Optional[Checkpointer] = None,
     tool_configs: Optional[dict[str, bool | ToolConfig]] = None,
 ):
+    """Create a deep agent.
+    This agent will by default have access to a tool to write todos (write_todos),
+    four file editing tools: write_file, ls, read_file, edit_file, and a tool to call subagents.
+    Args:
+        tools: The tools the agent should have access to.
+        instructions: The additional instructions the agent should have. Will go in
+            the system prompt.
+        model: The model to use.
+        subagents: The subagents to use. Each subagent should be a dictionary with the
+            following keys:
+                - `name`
+                - `description` (used by the main agent to decide whether to call the sub agent)
+                - `prompt` (used as the system prompt in the subagent)
+                - (optional) `tools`
+                - (optional) `model` (either a LanguageModelLike instance or dict settings)
+                - (optional) `middleware` (list of AgentMiddleware)
+        context_schema: The schema of the deep agent.
+        checkpointer: Optional checkpointer for persisting agent state between runs.
+        tool_configs: Optional Dict[str, HumanInTheLoopConfig] mapping tool names to interrupt configs.
+    """
     return agent_builder(
         tools=tools,
         instructions=instructions,
@@ -98,6 +118,26 @@ def async_create_deep_agent(
     checkpointer: Optional[Checkpointer] = None,
     tool_configs: Optional[dict[str, bool | ToolConfig]] = None,
 ):
+    """Create a deep agent.
+    This agent will by default have access to a tool to write todos (write_todos),
+    four file editing tools: write_file, ls, read_file, edit_file, and a tool to call subagents.
+    Args:
+        tools: The tools the agent should have access to.
+        instructions: The additional instructions the agent should have. Will go in
+            the system prompt.
+        model: The model to use.
+        subagents: The subagents to use. Each subagent should be a dictionary with the
+            following keys:
+                - `name`
+                - `description` (used by the main agent to decide whether to call the sub agent)
+                - `prompt` (used as the system prompt in the subagent)
+                - (optional) `tools`
+                - (optional) `model` (either a LanguageModelLike instance or dict settings)
+                - (optional) `middleware` (list of AgentMiddleware)
+        context_schema: The schema of the deep agent.
+        checkpointer: Optional checkpointer for persisting agent state between runs.
+        tool_configs: Optional Dict[str, HumanInTheLoopConfig] mapping tool names to interrupt configs.
+    """
     return agent_builder(
         tools=tools,
         instructions=instructions,
