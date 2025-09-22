@@ -1,6 +1,6 @@
 from deepagents.graph import create_deep_agent
 from langchain.agents import create_agent
-from tests.utils import assert_all_deepagent_qualities, SAMPLE_MODEL, sample_tool, get_weather, get_soccer_scores, SampleMiddlewareWithTools, SampleMiddlewareWithToolsAndState, WeatherToolMiddleware
+from tests.utils import assert_all_deepagent_qualities, SAMPLE_MODEL, sample_tool, get_weather, get_soccer_scores, SampleMiddlewareWithTools, SampleMiddlewareWithToolsAndState, WeatherToolMiddleware, ResearchMiddleware, ResearchMiddlewareWithTools, TOY_BASKETBALL_RESEARCH
 
 class TestDeepAgents:
     def test_base_deep_agent(self):
@@ -101,3 +101,21 @@ class TestDeepAgents:
         tool_calls = [tool_call for msg in agent_messages for tool_call in msg.tool_calls]
         assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "weather_agent" for tool_call in tool_calls])
         assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "soccer_agent" for tool_call in tool_calls])
+
+    def test_deep_agent_with_extended_state_and_subagents(self):
+        subagents = [
+            {
+                "name": "basketball_info_agent",
+                "description": "Use this agent to get surface level info on any basketball topic",
+                "prompt": "You are a basketball info agent.",
+                "middleware": [ResearchMiddlewareWithTools()],
+            }
+        ]
+        agent = create_deep_agent(tools=[sample_tool], subagents=subagents, middleware=[ResearchMiddleware()])
+        assert_all_deepagent_qualities(agent)
+        assert "research" in agent.stream_channels
+        result = agent.invoke({"messages": [{"role": "user", "content": "Get surface level info on lebron james"}]}, config={"recursion_limit": 100})
+        agent_messages = [msg for msg in result.get("messages", []) if msg.type == "ai"]
+        tool_calls = [tool_call for msg in agent_messages for tool_call in msg.tool_calls]
+        assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "basketball_info_agent" for tool_call in tool_calls])
+        assert TOY_BASKETBALL_RESEARCH in result["research"]

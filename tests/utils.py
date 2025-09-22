@@ -1,8 +1,10 @@
-from langchain_core.tools import tool
+from langchain_core.tools import tool, InjectedToolCallId
 from langchain.agents.middleware import AgentMiddleware
 from typing import Annotated
 from langchain.agents.tool_node import InjectedState
 from langchain.agents.middleware import AgentMiddleware, AgentState
+from langgraph.types import Command
+from langchain_core.messages import ToolMessage
 
 def assert_all_deepagent_qualities(agent):
     assert "todos" in agent.stream_channels
@@ -35,6 +37,35 @@ def sample_tool(sample_input: str):
 @tool(description="Sample tool with injected state")
 def sample_tool_with_injected_state(sample_input: str, state: Annotated[dict, InjectedState]):
     return sample_input + state["sample_input"]
+
+TOY_BASKETBALL_RESEARCH = "Lebron James is the best basketball player of all time with over 40k points and 21 seasons in the NBA."
+
+@tool(description="Use this tool to conduct research into basketball and save it to state")
+def research_basketball(
+    topic: str,
+    state: Annotated[dict, InjectedState],
+    tool_call_id: Annotated[str, InjectedToolCallId]
+):
+    current_research = state.get("research", "")
+    research = f"{current_research}\n\nResearching on {topic}... Done! {TOY_BASKETBALL_RESEARCH}"
+    return Command(
+        update={
+            "research": research,
+            "messages": [
+                ToolMessage(research, tool_call_id=tool_call_id)
+            ]
+        }
+    )
+
+class ResearchState(AgentState):
+    research: str
+
+class ResearchMiddlewareWithTools(AgentMiddleware):
+    state_schema = ResearchState
+    tools = [research_basketball]
+
+class ResearchMiddleware(AgentMiddleware):
+    state_schema = ResearchState
 
 class SampleMiddlewareWithTools(AgentMiddleware):
     tools = [sample_tool]

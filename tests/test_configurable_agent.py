@@ -1,7 +1,4 @@
 from deepagents.builder import create_configurable_agent
-
-from langchain_core.tools import tool
-from langchain.agents.middleware import AgentMiddleware
 from tests.utils import assert_all_deepagent_qualities, get_weather, sample_tool, get_soccer_scores
 
 SAMPLE_MODEL = "claude-3-5-sonnet-20240620"

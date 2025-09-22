@@ -27,7 +27,7 @@ class TestAddMiddleware:
     def test_subagent_middleware(self):
         middleware = [
             SubAgentMiddleware(
-                tools=[],
+                default_subagent_tools=[],
                 subagents=[],
                 model=SAMPLE_MODEL
             )
@@ -40,7 +40,7 @@ class TestAddMiddleware:
             PlanningMiddleware(),
             FilesystemMiddleware(),
             SubAgentMiddleware(
-                tools=[],
+                default_subagent_tools=[],
                 subagents=[],
                 model=SAMPLE_MODEL
             )
