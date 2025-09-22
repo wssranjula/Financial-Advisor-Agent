@@ -65,27 +65,27 @@ class FilesystemMiddleware(AgentMiddleware):
 class SubAgentMiddleware(AgentMiddleware):
     def __init__(
         self,
-        tools,
-        subagents: list[SubAgent | CustomSubAgent],
-        model,
+        default_subagent_tools: list[BaseTool] = [],
+        subagents: list[SubAgent | CustomSubAgent] = [],
+        model=None,
         is_async=False,
     ) -> None:
         super().__init__()
-        self.tools = [
-            create_task_tool(
-                tools=tools,
-                subagents=subagents,
-                model=model,
-                is_async=is_async,
-            )
-        ]
+        task_tool = create_task_tool(
+            default_subagent_tools=default_subagent_tools,
+            subagents=subagents,
+            model=model,
+            is_async=is_async,
+        )
+        print("Task tool:", task_tool)
+        self.tools = [task_tool]
 
     def modify_model_request(self, request: ModelRequest, agent_state: AgentState) -> ModelRequest:
         request.system_prompt = request.system_prompt + "\n\n" + TASK_SYSTEM_PROMPT
         return request
 
 def _get_agents(
-    tools,
+    default_subagent_tools: list[BaseTool],
     subagents: list[SubAgent | CustomSubAgent],
     model
 ):
@@ -100,28 +100,24 @@ def _get_agents(
         ),
     ]
     agents = {
-        # NOTE: The general-purpose agent gets todos and files, but not subagents.
         "general-purpose": create_agent(
             model,
             prompt=BASE_AGENT_PROMPT,
-            tools=tools,
+            tools=default_subagent_tools,
             checkpointer=False,
             middleware=default_subagent_middleware
         )
     }
-    tools_by_name = {}
-    for tool_ in tools:
-        if not isinstance(tool_, BaseTool):
-            tool_ = tool(tool_)
-        tools_by_name[tool_.name] = tool_
     for _agent in subagents:
         if "graph" in _agent:
             agents[_agent["name"]] = _agent["graph"]
             continue
+        _tools = default_subagent_tools.copy()
         if "tools" in _agent:
-            _tools = [tools_by_name[t] for t in _agent["tools"]]
-        else:
-            _tools = tools
+            existing_tool_names = [tool.name for tool in _tools]
+            for tool in _agent["tools"]:
+                if tool.name not in existing_tool_names:
+                    _tools.append(tool)
         # Resolve per-subagent model: can be instance or dict
         if "model" in _agent:
             agent_model = _agent["model"]
@@ -134,14 +130,15 @@ def _get_agents(
         else:
             # Fallback to main model
             sub_model = model
+        if "middleware" in _agent:
+            _middleware = [*default_subagent_middleware, *_agent["middleware"]]
+        else:
+            _middleware = default_subagent_middleware
         agents[_agent["name"]] = create_agent(
             sub_model,
             prompt=_agent["prompt"],
             tools=_tools,
-            middleware=[
-                *default_subagent_middleware,
-                *_agent["middleware"],
-            ],
+            middleware=_middleware,
             checkpointer=False,
         )
     return agents
@@ -152,13 +149,13 @@ def _get_subagent_description(subagents: list[SubAgent | CustomSubAgent]):
 
 
 def create_task_tool(
-    tools,
+    default_subagent_tools: list[BaseTool],
     subagents: list[SubAgent | CustomSubAgent],
     model,
     is_async: bool = False,
 ):
     agents = _get_agents(
-        tools, subagents, model
+        default_subagent_tools, subagents, model
     )
     other_agents_string = _get_subagent_description(subagents)
 
@@ -169,12 +166,13 @@ def create_task_tool(
         async def task(
             description: str,
             subagent_type: str,
-            state: Annotated[AgentState, InjectedState],
+            # state: Annotated[AgentState, InjectedState],
             tool_call_id: Annotated[str, InjectedToolCallId],
         ):
             if subagent_type not in agents:
                 return f"Error: invoked agent of type {subagent_type}, the only allowed types are {[f'`{k}`' for k in agents]}"
             sub_agent = agents[subagent_type]
+            state = {}
             state["messages"] = [{"role": "user", "content": description}]
             result = await sub_agent.ainvoke(state)
             state_update = {}
@@ -198,12 +196,13 @@ def create_task_tool(
         def task(
             description: str,
             subagent_type: str,
-            state: Annotated[AgentState, InjectedState],
+            # state: Annotated[AgentState, InjectedState],
             tool_call_id: Annotated[str, InjectedToolCallId],
         ):
             if subagent_type not in agents:
                 return f"Error: invoked agent of type {subagent_type}, the only allowed types are {[f'`{k}`' for k in agents]}"
             sub_agent = agents[subagent_type]
+            state = {}
             state["messages"] = [{"role": "user", "content": description}]
             result = sub_agent.invoke(state)
             state_update = {}

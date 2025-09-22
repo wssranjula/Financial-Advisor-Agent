@@ -4,6 +4,8 @@ from langchain.agents.middleware import AgentMiddleware
 from typing import Annotated
 from langgraph.prebuilt import InjectedState
 from langchain.agents.middleware import AgentMiddleware, AgentState
+from langchain_core.messages import filter_messages
+from langchain.agents import create_agent
 
 def assert_all_deepagent_qualities(agent):
     assert "todos" in agent.stream_channels
@@ -15,8 +17,18 @@ def assert_all_deepagent_qualities(agent):
     assert "edit_file" in agent.nodes["tools"].bound._tools_by_name.keys()
     assert "task" in agent.nodes["tools"].bound._tools_by_name.keys()
 
+SAMPLE_MODEL = "claude-3-5-sonnet-20240620"
+
 class SampleState(AgentState):
     sample_input: str
+
+@tool(description="Use this tool to get the weather")
+def get_weather(location: str):
+    return f"The weather in {location} is sunny."
+
+@tool(description="Use this tool to get the latest soccer scores")
+def get_soccer_scores(team: str):
+    return f"The latest soccer scores for {team} are 2-1."
 
 @tool(description="Sample tool")
 def sample_tool(sample_input: str):
@@ -32,6 +44,9 @@ class SampleMiddlewareWithTools(AgentMiddleware):
 class SampleMiddlewareWithToolsAndState(AgentMiddleware):
     state_schema = SampleState
     tools = [sample_tool]
+
+class WeatherToolMiddleware(AgentMiddleware):
+    tools = [get_weather]
 
 class TestDeepAgents:
     def test_base_deep_agent(self):
@@ -55,4 +70,80 @@ class TestDeepAgents:
         assert "sample_input" in agent.stream_channels
 
     def test_deep_agent_with_subagents(self):
-        pass
+        subagents = [
+            {
+                "name": "weather_agent",
+                "description": "Use this agent to get the weather",
+                "prompt": "You are a weather agent.",
+                "tools": [get_weather],
+                "model": SAMPLE_MODEL,
+            }
+        ]
+        agent = create_deep_agent(tools=[sample_tool], subagents=subagents)
+        assert_all_deepagent_qualities(agent)
+        result = agent.invoke({"messages": [{"role": "user", "content": "What is the weather in Tokyo?"}]})
+        agent_messages = [msg for msg in result.get("messages", []) if msg.type == "ai"]
+        tool_calls = [tool_call for msg in agent_messages for tool_call in msg.tool_calls]
+        assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "weather_agent" for tool_call in tool_calls])
+
+    def test_deep_agent_with_subagents_gen_purpose(self):
+        subagents = [
+            {
+                "name": "weather_agent",
+                "description": "Use this agent to get the weather",
+                "prompt": "You are a weather agent.",
+                "tools": [get_weather],
+                "model": SAMPLE_MODEL,
+            }
+        ]
+        agent = create_deep_agent(tools=[sample_tool], subagents=subagents)
+        assert_all_deepagent_qualities(agent)
+        result = agent.invoke({"messages": [{"role": "user", "content": "Use the general purpose subagent to call the sample tool"}]})
+        agent_messages = [msg for msg in result.get("messages", []) if msg.type == "ai"]
+        tool_calls = [tool_call for msg in agent_messages for tool_call in msg.tool_calls]
+        assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "general-purpose" for tool_call in tool_calls])
+
+    def test_deep_agent_with_subagents_with_middleware(self):
+        subagents = [
+            {
+                "name": "weather_agent",
+                "description": "Use this agent to get the weather",
+                "prompt": "You are a weather agent.",
+                "tools": [],
+                "model": SAMPLE_MODEL,
+                "middleware": [WeatherToolMiddleware()],
+            }
+        ]
+        agent = create_deep_agent(tools=[sample_tool], subagents=subagents)
+        assert_all_deepagent_qualities(agent)
+        result = agent.invoke({"messages": [{"role": "user", "content": "What is the weather in Tokyo?"}]})
+        agent_messages = [msg for msg in result.get("messages", []) if msg.type == "ai"]
+        tool_calls = [tool_call for msg in agent_messages for tool_call in msg.tool_calls]
+        assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "weather_agent" for tool_call in tool_calls])
+
+    def test_deep_agent_with_custom_subagents(self):
+        subagents = [
+            {
+                "name": "weather_agent",
+                "description": "Use this agent to get the weather",
+                "prompt": "You are a weather agent.",
+                "tools": [get_weather],
+                "model": SAMPLE_MODEL,
+            },
+            {
+                "name": "soccer_agent",
+                "description": "Use this agent to get the latest soccer scores",
+                "graph": create_agent(
+                    model=SAMPLE_MODEL,
+                    tools=[get_soccer_scores],
+                    prompt="You are a soccer agent.",
+                )
+            }
+        ]
+        agent = create_deep_agent(tools=[sample_tool], subagents=subagents)
+        assert_all_deepagent_qualities(agent)
+        result = agent.invoke({"messages": [{"role": "user", "content": "Look up the weather in Tokyo, and the latest scores for Manchester City!"}]})
+        agent_messages = [msg for msg in result.get("messages", []) if msg.type == "ai"]
+        tool_calls = [tool_call for msg in agent_messages for tool_call in msg.tool_calls]
+        assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "weather_agent" for tool_call in tool_calls])
+        assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "soccer_agent" for tool_call in tool_calls])

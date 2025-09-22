@@ -7,7 +7,6 @@ from langchain.agents.middleware import AgentMiddleware, SummarizationMiddleware
 from langchain.agents.middleware.human_in_the_loop import ToolConfig
 from langchain.agents.middleware.prompt_caching import AnthropicPromptCachingMiddleware
 from langchain.chat_models import init_chat_model
-from langchain_anthropic import ChatAnthropic
 from deepagents.middleware import PlanningMiddleware, FilesystemMiddleware, SubAgentMiddleware
 from deepagents.prompts import BASE_AGENT_PROMPT
 from deepagents.model import get_default_model
@@ -37,14 +36,14 @@ def agent_builder(
         PlanningMiddleware(),
         FilesystemMiddleware(),
         SubAgentMiddleware(
-            tools=tools,
+            default_subagent_tools=tools,   # NOTE: These tools are piped to the general-purpose subagent.
             subagents=subagents,
             model=model,
             is_async=is_async,
         ),
         SummarizationMiddleware(
             model=model,
-            max_tokens_before_summary=20000,    # NOTE: To tweak
+            max_tokens_before_summary=20000,    # TODO: Tweak
             messages_to_keep=20,
         ),
         *middleware,
@@ -54,6 +53,7 @@ def agent_builder(
         deepagent_middleware.append(HumanInTheLoopMiddleware(tool_configs=tool_configs))
 
     # Add Anthropic prompt caching is model is Anthropic
+    # TODO: Add this back when fixed
     # if isinstance(model, ChatAnthropic):
     #     deepagent_middleware.append(AnthropicPromptCachingMiddleware(ttl="5m"))
 

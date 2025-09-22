@@ -38,10 +38,16 @@ def create_configurable_agent(
             k: v for k, v in config.items() if k in ["instructions", "subagents"]
         }
         config = AgentConfig(**config_fields)
+        subagents_with_tools = [
+            {
+                **subagent,
+                "tools": [t for t in tools if t.name in subagent.get("tools", [])]
+            } for subagent in config.subagents
+        ]
         return create_deep_agent(
             instructions=config.instructions,
             tools=[t for t in tools if t.name in config.tools],
-            subagents=config.subagents,
+            subagents=subagents_with_tools,
             context_schema=AgentConfig,
             **kwargs,
         ).with_config(agent_config or {})
@@ -73,10 +79,16 @@ def async_create_configurable_agent(
             k: v for k, v in config.items() if k in ["instructions", "subagents"]
         }
         config = AgentConfig(**config_fields)
+        subagents_with_tools = [
+            {
+                **subagent,
+                "tools": [t for t in tools if t.name in subagent.get("tools", [])]
+            } for subagent in config.subagents
+        ]
         return async_create_deep_agent(
             instructions=config.instructions,
             tools=[t for t in tools if t.name in config.tools],
-            subagents=config.subagents,
+            subagents=subagents_with_tools,
             context_schema=AgentConfig,
             **kwargs,
         ).with_config(agent_config or {"recursion_limit": 1000})
