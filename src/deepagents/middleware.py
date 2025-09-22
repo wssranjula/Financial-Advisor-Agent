@@ -14,14 +14,6 @@ from deepagents.tools import write_todos, ls, read_file, write_file, edit_file
 from deepagents.prompts import WRITE_TODOS_SYSTEM_PROMPT, TASK_SYSTEM_PROMPT, FILESYSTEM_SYSTEM_PROMPT, TASK_TOOL_DESCRIPTION, BASE_AGENT_PROMPT
 from deepagents.types import SubAgent, CustomSubAgent
 
-
-###############################
-# Current Limitations
-# - Prompts are segregated for each piece of middleware, no composition (write todos in subagents)
-# - State Schema doesn't work right now!
-# - Need to add back interrupt support!
-###############################
-
 ###########################
 # Planning Middleware
 ###########################
@@ -36,12 +28,6 @@ class PlanningMiddleware(AgentMiddleware):
     def modify_model_request(self, request: ModelRequest, agent_state: PlanningState) -> ModelRequest:
         request.system_prompt = request.system_prompt + "\n\n" + WRITE_TODOS_SYSTEM_PROMPT
         return request
-
-    # TODO: Prune out more than one call of write_todos in parallel.
-    # def after_model(self, state: AgentState) -> dict[str, Any] | None:
-    #     return {
-    #         "messages": [AIMessage(content="")]
-    #     }
 
 ###########################
 # Filesystem Middleware
@@ -95,7 +81,7 @@ def _get_agents(
         # AnthropicPromptCachingMiddleware(ttl="5m"),
         SummarizationMiddleware(
             model=model,
-            max_tokens_before_summary=20000,
+            max_tokens_before_summary=150000,
             messages_to_keep=20,
         ),
     ]

@@ -43,7 +43,7 @@ def agent_builder(
         ),
         SummarizationMiddleware(
             model=model,
-            max_tokens_before_summary=20000,    # TODO: Tweak
+            max_tokens_before_summary=150000,
             messages_to_keep=20,
         ),
         *middleware,
