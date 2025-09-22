@@ -177,9 +177,13 @@ def create_task_tool(
             sub_agent = agents[subagent_type]
             state["messages"] = [{"role": "user", "content": description}]
             result = await sub_agent.ainvoke(state)
+            state_update = {}
+            for k, v in result.items():
+                if k not in ["todos", "messages"]:
+                    state_update[k] = v
             return Command(
                 update={
-                    "files": result.get("files", {}),
+                    **state_update,
                     "messages": [
                         ToolMessage(
                             result["messages"][-1].content, tool_call_id=tool_call_id
@@ -202,10 +206,13 @@ def create_task_tool(
             sub_agent = agents[subagent_type]
             state["messages"] = [{"role": "user", "content": description}]
             result = sub_agent.invoke(state)
-            # TODO: Write back all keys from the result to parent graph EXCEPT for todos
+            state_update = {}
+            for k, v in result.items():
+                if k not in ["todos", "messages"]:
+                    state_update[k] = v
             return Command(
                 update={
-                    "files": result.get("files", {}),
+                    **state_update,
                     "messages": [
                         ToolMessage(
                             result["messages"][-1].content, tool_call_id=tool_call_id
