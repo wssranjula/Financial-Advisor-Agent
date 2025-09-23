@@ -7,7 +7,7 @@ from langchain.agents.middleware import AgentMiddleware, SummarizationMiddleware
 from langchain.agents.middleware.human_in_the_loop import ToolConfig
 from langchain.agents.middleware.prompt_caching import AnthropicPromptCachingMiddleware
 from langchain.chat_models import init_chat_model
-from deepagents.middleware import PlanningMiddleware, FilesystemMiddleware, SubAgentMiddleware
+from deepagents.middleware import planning_middleware, filesystem_middleware, SubAgentMiddleware
 from deepagents.prompts import BASE_AGENT_PROMPT
 from deepagents.model import get_default_model
 from deepagents.state import DeepAgentState
@@ -31,8 +31,8 @@ def agent_builder(
         model = get_default_model()
 
     deepagent_middleware = [
-        PlanningMiddleware(),
-        FilesystemMiddleware(),
+        planning_middleware,
+        filesystem_middleware,
         SubAgentMiddleware(
             default_subagent_tools=tools,   # NOTE: These tools are piped to the general-purpose subagent.
             subagents=subagents if subagents is not None else [],

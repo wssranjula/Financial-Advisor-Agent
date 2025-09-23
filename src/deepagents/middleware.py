@@ -8,7 +8,8 @@ from langchain_core.messages import ToolMessage
 from langchain.chat_models import init_chat_model
 from langgraph.types import Command
 from langchain.agents.tool_node import InjectedState
-from typing import Annotated, Optional
+from langchain.agents.middleware.types import modify_model_request 
+from typing import Annotated
 from deepagents.state import PlanningState, FilesystemState
 from deepagents.tools import write_todos, ls, read_file, write_file, edit_file
 from deepagents.prompts import WRITE_TODOS_SYSTEM_PROMPT, TASK_SYSTEM_PROMPT, FILESYSTEM_SYSTEM_PROMPT, TASK_TOOL_DESCRIPTION, BASE_AGENT_PROMPT
@@ -18,25 +19,19 @@ from deepagents.types import SubAgent, CustomSubAgent
 # Planning Middleware
 ###########################
 
-class PlanningMiddleware(AgentMiddleware):
-    state_schema = PlanningState
-    tools = [write_todos]
-
-    def modify_model_request(self, request: ModelRequest, agent_state: PlanningState) -> ModelRequest:
-        request.system_prompt = request.system_prompt + "\n\n" + WRITE_TODOS_SYSTEM_PROMPT
-        return request
+@modify_model_request(state_schema=PlanningState, tools=[write_todos], name="PlanningMiddleware")
+def planning_middleware(request: ModelRequest, state: PlanningState) -> ModelRequest:
+    request.system_prompt = request.system_prompt + "\n\n" + WRITE_TODOS_SYSTEM_PROMPT
+    return request
 
 ###########################
 # Filesystem Middleware
 ###########################
 
-class FilesystemMiddleware(AgentMiddleware):
-    state_schema = FilesystemState
-    tools = [ls, read_file, write_file, edit_file]
-
-    def modify_model_request(self, request: ModelRequest, agent_state: FilesystemState) -> ModelRequest:
-        request.system_prompt = request.system_prompt + "\n\n" + FILESYSTEM_SYSTEM_PROMPT
-        return request
+@modify_model_request(state_schema=FilesystemState, tools=[ls, read_file, write_file, edit_file], name="FilesystemMiddleware")
+def filesystem_middleware(request: ModelRequest, state: FilesystemState) -> ModelRequest:
+    request.system_prompt = request.system_prompt + "\n\n" + FILESYSTEM_SYSTEM_PROMPT
+    return request
 
 ###########################
 # SubAgent Middleware
@@ -69,8 +64,8 @@ def _get_agents(
     model
 ):
     default_subagent_middleware = [
-        PlanningMiddleware(),
-        FilesystemMiddleware(),
+        planning_middleware,
+        filesystem_middleware,
         # TODO: Add this back when fixed
         # AnthropicPromptCachingMiddleware(ttl="5m"),
         SummarizationMiddleware(
