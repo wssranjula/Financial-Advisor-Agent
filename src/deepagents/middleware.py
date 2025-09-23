@@ -8,8 +8,8 @@ from langchain_core.messages import ToolMessage
 from langchain.chat_models import init_chat_model
 from langgraph.types import Command
 from langchain.agents.tool_node import InjectedState
-from typing import NotRequired, Annotated
-from deepagents.state import Todo, file_reducer
+from typing import Annotated
+from deepagents.state import PlanningState, FilesystemState
 from deepagents.tools import write_todos, ls, read_file, write_file, edit_file
 from deepagents.prompts import WRITE_TODOS_SYSTEM_PROMPT, TASK_SYSTEM_PROMPT, FILESYSTEM_SYSTEM_PROMPT, TASK_TOOL_DESCRIPTION, BASE_AGENT_PROMPT
 from deepagents.types import SubAgent, CustomSubAgent
@@ -17,9 +17,6 @@ from deepagents.types import SubAgent, CustomSubAgent
 ###########################
 # Planning Middleware
 ###########################
-
-class PlanningState(AgentState):
-    todos: NotRequired[list[Todo]]
 
 class PlanningMiddleware(AgentMiddleware):
     state_schema = PlanningState
@@ -32,9 +29,6 @@ class PlanningMiddleware(AgentMiddleware):
 ###########################
 # Filesystem Middleware
 ###########################
-
-class FilesystemState(AgentState):
-    files: Annotated[NotRequired[dict[str, str]], file_reducer]
 
 class FilesystemMiddleware(AgentMiddleware):
     state_schema = FilesystemState
