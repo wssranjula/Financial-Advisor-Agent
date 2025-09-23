@@ -1,4 +1,4 @@
-from typing import Sequence, Union, Callable, Any, TypeVar, Type, Optional
+from typing import Sequence, Union, Callable, Any, Type, Optional
 from langchain_core.tools import BaseTool
 from langchain_core.language_models import LanguageModelLike
 from langgraph.types import Checkpointer
@@ -6,15 +6,10 @@ from langchain.agents import create_agent
 from langchain.agents.middleware import AgentMiddleware, SummarizationMiddleware, HumanInTheLoopMiddleware
 from langchain.agents.middleware.human_in_the_loop import ToolConfig
 from langchain.agents.middleware.prompt_caching import AnthropicPromptCachingMiddleware
-from langchain.chat_models import init_chat_model
 from deepagents.middleware import PlanningMiddleware, FilesystemMiddleware, SubAgentMiddleware
 from deepagents.prompts import BASE_AGENT_PROMPT
 from deepagents.model import get_default_model
-from deepagents.state import DeepAgentState
 from deepagents.types import SubAgent, CustomSubAgent
-
-StateSchema = TypeVar("StateSchema", bound=DeepAgentState)
-StateSchemaType = Type[StateSchema]
 
 def agent_builder(
     tools: Sequence[Union[BaseTool, Callable, dict[str, Any]]],
