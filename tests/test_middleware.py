@@ -1,7 +1,7 @@
 from langchain.agents import create_agent
 from deepagents.middleware import (
-    PlanningMiddleware,
-    FilesystemMiddleware,
+    planning_middleware,
+    filesystem_middleware,
     SubAgentMiddleware,
 )
 
@@ -9,13 +9,13 @@ SAMPLE_MODEL = "claude-3-5-sonnet-20240620"
 
 class TestAddMiddleware:
     def test_planning_middleware(self):
-        middleware = [PlanningMiddleware()]
+        middleware = [planning_middleware]
         agent = create_agent(model=SAMPLE_MODEL, middleware=middleware, tools=[])
         assert "todos" in agent.stream_channels
         assert "write_todos" in agent.nodes["tools"].bound._tools_by_name.keys()
 
     def test_filesystem_middleware(self):
-        middleware = [FilesystemMiddleware()]
+        middleware = [filesystem_middleware]
         agent = create_agent(model=SAMPLE_MODEL, middleware=middleware, tools=[])
         assert "files" in agent.stream_channels
         agent_tools = agent.nodes["tools"].bound._tools_by_name.keys()
@@ -37,8 +37,8 @@ class TestAddMiddleware:
 
     def test_multiple_middleware(self):
         middleware = [
-            PlanningMiddleware(),
-            FilesystemMiddleware(),
+            planning_middleware,
+            filesystem_middleware,
             SubAgentMiddleware(
                 default_subagent_tools=[],
                 subagents=[],
