@@ -19,10 +19,10 @@ StateSchemaType = Type[StateSchema]
 def agent_builder(
     tools: Sequence[Union[BaseTool, Callable, dict[str, Any]]],
     instructions: str,
-    middleware: list[AgentMiddleware] = [],
+    middleware: Optional[list[AgentMiddleware]] = None,
     tool_configs: Optional[dict[str, bool | ToolConfig]] = None,
     model: Optional[Union[str, LanguageModelLike]] = None,
-    subagents: list[SubAgent | CustomSubAgent] = None,
+    subagents: Optional[list[SubAgent | CustomSubAgent]] = None,
     context_schema: Optional[Type[Any]] = None,
     checkpointer: Optional[Checkpointer] = None,
     is_async: bool = False,
@@ -35,7 +35,7 @@ def agent_builder(
         FilesystemMiddleware(),
         SubAgentMiddleware(
             default_subagent_tools=tools,   # NOTE: These tools are piped to the general-purpose subagent.
-            subagents=subagents,
+            subagents=subagents if subagents is not None else [],
             model=model,
             is_async=is_async,
         ),
@@ -43,8 +43,7 @@ def agent_builder(
             model=model,
             max_tokens_before_summary=150000,
             messages_to_keep=20,
-        ),
-        *middleware,
+        )
     ]
     # Add tool interrupt config if provided
     if tool_configs is not None:
@@ -54,6 +53,9 @@ def agent_builder(
     # TODO: Add this back when fixed
     # if isinstance(model, ChatAnthropic):
     #     deepagent_middleware.append(AnthropicPromptCachingMiddleware(ttl="5m"))
+
+    if middleware is not None:
+        deepagent_middleware.extend(middleware)
 
     return create_agent(
         model,
@@ -67,9 +69,9 @@ def agent_builder(
 def create_deep_agent(
     tools: Sequence[Union[BaseTool, Callable, dict[str, Any]]] = [],
     instructions: str = "",
-    middleware: list[AgentMiddleware] = [],
+    middleware: Optional[list[AgentMiddleware]] = None,
     model: Optional[Union[str, LanguageModelLike]] = None,
-    subagents: list[SubAgent | CustomSubAgent] = [],
+    subagents: Optional[list[SubAgent | CustomSubAgent]] = None,
     context_schema: Optional[Type[Any]] = None,
     checkpointer: Optional[Checkpointer] = None,
     tool_configs: Optional[dict[str, bool | ToolConfig]] = None,
@@ -109,9 +111,9 @@ def create_deep_agent(
 def async_create_deep_agent(
     tools: Sequence[Union[BaseTool, Callable, dict[str, Any]]] = [],
     instructions: str = "",
-    middleware: list[AgentMiddleware] = [],
+    middleware: Optional[list[AgentMiddleware]] = None,
     model: Optional[Union[str, LanguageModelLike]] = None,
-    subagents: list[SubAgent | CustomSubAgent] = [],
+    subagents: Optional[list[SubAgent | CustomSubAgent]] = None,
     context_schema: Optional[Type[Any]] = None,
     checkpointer: Optional[Checkpointer] = None,
     tool_configs: Optional[dict[str, bool | ToolConfig]] = None,
