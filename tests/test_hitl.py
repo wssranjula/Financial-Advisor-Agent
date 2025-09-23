@@ -1,4 +1,4 @@
-from deepagents.builder import create_deep_agent
+from deepagents.graph import create_deep_agent
 from tests.utils import assert_all_deepagent_qualities, get_weather, sample_tool, get_soccer_scores
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
@@ -48,4 +48,4 @@ class TestHITL:
         assert any([tool_result.name == "sample_tool" for tool_result in tool_results])
         assert any([tool_result.name == "get_weather" for tool_result in tool_results])
         assert any([tool_result.name == "get_soccer_scores" for tool_result in tool_results])
-        assert result2["__interrupt__"] is None
+        assert "__interrupt__" not in result2

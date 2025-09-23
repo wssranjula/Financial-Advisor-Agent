@@ -412,5 +412,5 @@ You have access to a local, private filesystem which you can interact with using
 - edit_file: edit a file in the local filesystem"""
 
 BASE_AGENT_PROMPT = """
-In order to complete the objective that the user asks ofyou, you have access to a number of standard tools.
+In order to complete the objective that the user asks of you, you have access to a number of standard tools.
 """

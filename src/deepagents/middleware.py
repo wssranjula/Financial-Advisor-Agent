@@ -98,12 +98,10 @@ def _get_agents(
         if "graph" in _agent:
             agents[_agent["name"]] = _agent["graph"]
             continue
-        _tools = default_subagent_tools.copy()
         if "tools" in _agent:
-            existing_tool_names = [tool.name for tool in _tools]
-            for tool in _agent["tools"]:
-                if tool.name not in existing_tool_names:
-                    _tools.append(tool)
+            _tools = _agent["tools"]
+        else:
+            _tools = default_subagent_tools.copy()
         # Resolve per-subagent model: can be instance or dict
         if "model" in _agent:
             agent_model = _agent["model"]

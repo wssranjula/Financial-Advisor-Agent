@@ -119,3 +119,18 @@ class TestDeepAgents:
         tool_calls = [tool_call for msg in agent_messages for tool_call in msg.tool_calls]
         assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "basketball_info_agent" for tool_call in tool_calls])
         assert TOY_BASKETBALL_RESEARCH in result["research"]
+
+    def test_deep_agent_with_subagents_no_tools(self):
+        subagents = [
+            {
+                "name": "basketball_info_agent",
+                "description": "Use this agent to get surface level info on any basketball topic",
+                "prompt": "You are a basketball info agent.",
+            }
+        ]
+        agent = create_deep_agent(tools=[sample_tool], subagents=subagents)
+        assert_all_deepagent_qualities(agent)
+        result = agent.invoke({"messages": [{"role": "user", "content": "Use the basketball info subagent to call the sample tool"}]}, config={"recursion_limit": 100})
+        agent_messages = [msg for msg in result.get("messages", []) if msg.type == "ai"]
+        tool_calls = [tool_call for msg in agent_messages for tool_call in msg.tool_calls]
+        assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "basketball_info_agent" for tool_call in tool_calls])

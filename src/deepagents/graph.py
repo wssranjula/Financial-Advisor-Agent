@@ -29,8 +29,6 @@ def agent_builder(
 ):
     if model is None:
         model = get_default_model()
-    elif isinstance(model, str):
-        model = init_chat_model(model)
 
     deepagent_middleware = [
         PlanningMiddleware(),

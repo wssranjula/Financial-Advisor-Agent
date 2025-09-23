@@ -221,46 +221,6 @@ agent = create_deep_agent(
 )
 ```
 
-## Deep Agents Middleware
-
-`create_deep_agent` is our prebuilt deep agent, and leverages the full suite of deep agent tooling
-1. Planning tool
-2. Filesystem
-3. Subagents
-
-In some cases, your application may only need a subset of those features. You can directly add our `PlanningMiddleware`, `FilesystemMiddleware`, or `SubAgentMiddleware` to `create_agent` to make use of a specific piece of functionality.
-
-For example, you might want to enhance a tool-calling agent with the ability to plan, but it's simple enough such that you don't really need a filesystem or subagents.
-
-```python
-from deepagents.middleware import PlanningMiddleware
-
-agent = create_agent(
-    model=model,
-    middleware=[PlanningMiddleware()],
-    tools=[toolA, toolB, toolC]
-)
-```
-
-A chief benefit of middleware is that it can stack, and you specify exactly which ones you want to add! Let's say later you decide that adding subagents to silo context may be helpful.
-
-```python
-from deepagents.middleware import PlanningMiddleware, SubAgentMiddleware
-
-agent = create_agent(
-    model=model,
-    middleware=[
-        PlanningMiddleware(), 
-        SubAgentMiddleware(
-            default_subagent_tools=[toolA, toolB],
-            subagents=[subagentA, subagentB],
-        )],
-    tools=[toolA, toolB, toolC]
-)
-```
-
-This agent now has access to the planning tool and subagent tool, with additions to the system prompt explaining how to use these tools.
-
 ## Deep Agent Details
 
 The below components are built into `deepagents` and helps make it work for deep tasks off-the-shelf.
