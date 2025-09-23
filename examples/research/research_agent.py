@@ -10,13 +10,13 @@ from deepagents import create_deep_agent
 tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
 
 # Search tool to use to do research
-@tool(description="Use this tool to run a web search")
 def internet_search(
     query: str,
     max_results: int = 5,
     topic: Literal["general", "news", "finance"] = "general",
     include_raw_content: bool = False,
 ):
+    """Run a web search"""
     search_docs = tavily_client.search(
         query,
         max_results=max_results,

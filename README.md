@@ -31,13 +31,13 @@ from deepagents import create_deep_agent
 tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
 
 # Search tool to use to do research
-@tool(description="Use this tool to run a web search")
 def internet_search(
     query: str,
     max_results: int = 5,
     topic: Literal["general", "news", "finance"] = "general",
     include_raw_content: bool = False,
 ):
+    """Run a web search"""
     return tavily_client.search(
         query,
         max_results=max_results,
@@ -73,7 +73,7 @@ in the same way you would any LangGraph agent.
 
 ## Creating a custom deep agent
 
-There are three parameters you can pass to `create_deep_agent` to create your own custom deep agent.
+There are several parameters you can pass to `create_deep_agent` to create your own custom deep agent.
 
 ### `tools` (Required)
 
@@ -220,6 +220,15 @@ agent = create_deep_agent(
     subagents=[critique_sub_agent],
 )
 ```
+
+
+### `middleware` (Optional)
+Both the main agent and sub-agents can take additional custom AgentMiddleware. Middleware is the best supported approach for extending the state_schema, adding additional tools, and adding pre / post model hooks. See this [doc](https://docs.langchain.com/oss/python/langchain/middleware) to learn more about Middleware and how you can use it!
+
+### `tool_configs` (Optional)
+Tool configs are used to specify how to handle Human In The Loop interactions on certain tools that require additional human oversight. 
+
+These tool_configs are passed to our prebuilt [HITL middleware](https://docs.langchain.com/oss/python/langchain/middleware#human-in-the-loop) so that the agent pauses execution and waits for feedback from the user before executing configured tools.
 
 ## Deep Agent Details
 
@@ -417,27 +426,6 @@ async def main():
 
 asyncio.run(main())
 ```
-
-## Configurable Agent
-
-Configurable agents allow you to control the agent via a config passed in.
-
-```python
-from deepagents import create_configurable_agent
-
-agent_config = {"instructions": "foo", "subagents": []}
-
-build_agent = create_configurable_agent(
-    agent_config['instructions'],
-    agent_config['subagents'],
-    [],
-    agent_config={"recursion_limit": 1000}
-)
-```
-You can now use `build_agent` in your `langgraph.json` and deploy it with `langgraph dev`
-
-For async tools, you can use `from deepagents import async_create_configurable_agent`
-
 
 ## Roadmap
 - [ ] Allow users to customize full system prompt
