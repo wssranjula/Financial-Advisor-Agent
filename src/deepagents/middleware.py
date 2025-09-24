@@ -71,11 +71,10 @@ def _get_agents(
     default_subagent_middleware = [
         PlanningMiddleware(),
         FilesystemMiddleware(),
-        # TODO: Add this back when fixed
-        # AnthropicPromptCachingMiddleware(ttl="5m"),
+        AnthropicPromptCachingMiddleware(ttl="5m", unsupported_model_behavior="ignore"),
         SummarizationMiddleware(
             model=model,
-            max_tokens_before_summary=150000,
+            max_tokens_before_summary=120000,
             messages_to_keep=20,
         ),
     ]
