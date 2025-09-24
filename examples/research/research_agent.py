@@ -2,7 +2,6 @@ import os
 from typing import Literal
 
 from tavily import TavilyClient
-from langchain_core.tools import tool
 
 from deepagents import create_deep_agent
 
