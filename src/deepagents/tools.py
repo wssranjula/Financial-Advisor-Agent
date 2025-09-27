@@ -1,3 +1,4 @@
+from re import L
 from langchain_core.tools import tool, InjectedToolCallId
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
@@ -11,7 +12,17 @@ from deepagents.prompts import (
     WRITE_FILE_TOOL_DESCRIPTION,
     EDIT_FILE_TOOL_DESCRIPTION,
 )
+from ai_filesystem import FilesystemClient
+import os
 
+def has_longterm_prefix(file_path: str) -> bool:
+    return file_path.startswith("longterm/")
+
+def append_longterm_prefix(file_path: str) -> str:
+    return f"longterm/{file_path}"
+
+def strip_longterm_prefix(file_path: str) -> str:
+    return file_path.replace("longterm/", "")
 
 @tool(description=WRITE_TODOS_TOOL_DESCRIPTION)
 def write_todos(
@@ -30,7 +41,17 @@ def write_todos(
 @tool(description=LIST_FILES_TOOL_DESCRIPTION)
 def ls(state: Annotated[FilesystemState, InjectedState]) -> list[str]:
     """List all files"""
-    return list(state.get("files", {}).keys())
+    files = []
+    files.extend(list(state.get("files", {}).keys()))
+    # Special handling for longterm filesystem
+    if os.getenv("LONGTERM_FILESYSTEM_NAME") and os.getenv("AGENT_FS_API_KEY"):
+        filesystem_client = FilesystemClient(
+            filesystem=os.getenv("LONGTERM_FILESYSTEM_NAME")
+        )
+        file_data_list = filesystem_client._list_files()
+        longterm_files = [f"longterm/{f.path}" for f in file_data_list]
+        files.extend(longterm_files)
+    return files
 
 
 @tool(description=READ_FILE_TOOL_DESCRIPTION)
@@ -40,6 +61,15 @@ def read_file(
     offset: int = 0,
     limit: int = 2000,
 ) -> str:
+    # Special handling for longterm filesystem
+    if os.getenv("LONGTERM_FILESYSTEM_NAME") and os.getenv("AGENT_FS_API_KEY") and has_longterm_prefix(file_path):
+        filesystem_client = FilesystemClient(
+            filesystem=os.getenv("LONGTERM_FILESYSTEM_NAME")
+        )
+        file_path = strip_longterm_prefix(file_path)
+        content = filesystem_client.read_file(file_path)
+        return content
+
     mock_filesystem = state.get("files", {})
     if file_path not in mock_filesystem:
         return f"Error: File '{file_path}' not found"
@@ -85,14 +115,24 @@ def write_file(
     state: Annotated[FilesystemState, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> Command:
+    # Special handling for longterm filesystem
+    if os.getenv("LONGTERM_FILESYSTEM_NAME") and os.getenv("AGENT_FS_API_KEY") and has_longterm_prefix(file_path):
+        filesystem_client = FilesystemClient(
+            filesystem=os.getenv("LONGTERM_FILESYSTEM_NAME")
+        )
+        short_file_path = strip_longterm_prefix(file_path)
+        filesystem_client.create_file(short_file_path, content)
+        return Command(
+            update={
+                "messages": [ToolMessage(f"Updated longterm file {file_path}", tool_call_id=tool_call_id)]
+            }
+        )
+
     files = state.get("files", {})
-    files[file_path] = content
     return Command(
         update={
             "files": files,
-            "messages": [
-                ToolMessage(f"Updated file {file_path}", tool_call_id=tool_call_id)
-            ],
+            "messages": [ToolMessage(f"Updated file {file_path}", tool_call_id=tool_call_id)]
         }
     )
 
@@ -107,6 +147,19 @@ def edit_file(
     replace_all: bool = False,
 ) -> Union[Command, str]:
     """Write to a file."""
+    # Special handling for longterm filesystem
+    if os.getenv("LONGTERM_FILESYSTEM_NAME") and os.getenv("AGENT_FS_API_KEY") and has_longterm_prefix(file_path):
+        filesystem_client = FilesystemClient(
+            filesystem=os.getenv("LONGTERM_FILESYSTEM_NAME")
+        )
+        short_file_path = strip_longterm_prefix(file_path)
+        filesystem_client.edit_file(short_file_path, old_string, new_string, replace_all)
+        return Command(
+            update={
+                "messages": [ToolMessage(f"Successfully edited longterm file {file_path}", tool_call_id=tool_call_id)]
+            }
+        )
+
     mock_filesystem = state.get("files", {})
     # Check if file exists in mock filesystem
     if file_path not in mock_filesystem:

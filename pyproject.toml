@@ -10,6 +10,7 @@ dependencies = [
     "langchain-anthropic>=0.1.23",
     "langchain>=1.0.0a9",
     "langgraph-prebuilt>=0.7.0a2",
+    "ai-filesystem>=0.1.4",
 ]
 
 [project.optional-dependencies]

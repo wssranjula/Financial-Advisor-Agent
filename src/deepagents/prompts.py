@@ -406,10 +406,15 @@ When NOT to use the task tool:
 FILESYSTEM_SYSTEM_PROMPT = """## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`
 
 You have access to a local, private filesystem which you can interact with using these tools.
-- ls: list all files in the local filesystem
-- read_file: read a file from the local filesystem
-- write_file: write to a file in the local filesystem
-- edit_file: edit a file in the local filesystem"""
+
+You also have access to a longterm filesystem in which you can store files that you want to keep around for longer than the current conversation.
+In order to interact with the longterm filesystem, you can use those same tools, but filenames must be prefixed with the longterm/ path.
+
+- ls: list all files in the filesystem (local and longterm)
+- read_file: read a file from the filesystem (local and longterm)
+- write_file: write to a file in the filesystem (local and longterm)
+- edit_file: edit a file in the filesystem (local and longterm)
+"""
 
 BASE_AGENT_PROMPT = """
 In order to complete the objective that the user asks of you, you have access to a number of standard tools.
