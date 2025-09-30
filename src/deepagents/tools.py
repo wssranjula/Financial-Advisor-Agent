@@ -15,14 +15,14 @@ from deepagents.prompts import (
 from ai_filesystem import FilesystemClient
 import os
 
-def has_longterm_prefix(file_path: str) -> bool:
-    return file_path.startswith("longterm/")
+def has_memories_prefix(file_path: str) -> bool:
+    return file_path.startswith("memories/")
 
-def append_longterm_prefix(file_path: str) -> str:
-    return f"longterm/{file_path}"
+def append_memories_prefix(file_path: str) -> str:
+    return f"memories/{file_path}"
 
-def strip_longterm_prefix(file_path: str) -> str:
-    return file_path.replace("longterm/", "")
+def strip_memories_prefix(file_path: str) -> str:
+    return file_path.replace("memories/", "")
 
 @tool(description=WRITE_TODOS_TOOL_DESCRIPTION)
 def write_todos(
@@ -49,8 +49,8 @@ def ls(state: Annotated[FilesystemState, InjectedState]) -> list[str]:
             filesystem=os.getenv("LONGTERM_FILESYSTEM_NAME")
         )
         file_data_list = filesystem_client._list_files()
-        longterm_files = [f"longterm/{f.path}" for f in file_data_list]
-        files.extend(longterm_files)
+        memories_files = [f"memories/{f.path}" for f in file_data_list]
+        files.extend(memories_files)
     return files
 
 
@@ -62,11 +62,11 @@ def read_file(
     limit: int = 2000,
 ) -> str:
     # Special handling for longterm filesystem
-    if os.getenv("LONGTERM_FILESYSTEM_NAME") and os.getenv("AGENT_FS_API_KEY") and has_longterm_prefix(file_path):
+    if os.getenv("LONGTERM_FILESYSTEM_NAME") and os.getenv("AGENT_FS_API_KEY") and has_memories_prefix(file_path):
         filesystem_client = FilesystemClient(
             filesystem=os.getenv("LONGTERM_FILESYSTEM_NAME")
         )
-        file_path = strip_longterm_prefix(file_path)
+        file_path = strip_memories_prefix(file_path)
         content = filesystem_client.read_file(file_path)
         return content
 
@@ -116,15 +116,15 @@ def write_file(
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> Command:
     # Special handling for longterm filesystem
-    if os.getenv("LONGTERM_FILESYSTEM_NAME") and os.getenv("AGENT_FS_API_KEY") and has_longterm_prefix(file_path):
+    if os.getenv("LONGTERM_FILESYSTEM_NAME") and os.getenv("AGENT_FS_API_KEY") and has_memories_prefix(file_path):
         filesystem_client = FilesystemClient(
             filesystem=os.getenv("LONGTERM_FILESYSTEM_NAME")
         )
-        short_file_path = strip_longterm_prefix(file_path)
+        short_file_path = strip_memories_prefix(file_path)
         filesystem_client.create_file(short_file_path, content)
         return Command(
             update={
-                "messages": [ToolMessage(f"Updated longterm file {file_path}", tool_call_id=tool_call_id)]
+                "messages": [ToolMessage(f"Updated longterm memories file {file_path}", tool_call_id=tool_call_id)]
             }
         )
 
@@ -148,15 +148,15 @@ def edit_file(
 ) -> Union[Command, str]:
     """Write to a file."""
     # Special handling for longterm filesystem
-    if os.getenv("LONGTERM_FILESYSTEM_NAME") and os.getenv("AGENT_FS_API_KEY") and has_longterm_prefix(file_path):
+    if os.getenv("LONGTERM_FILESYSTEM_NAME") and os.getenv("AGENT_FS_API_KEY") and has_memories_prefix(file_path):
         filesystem_client = FilesystemClient(
             filesystem=os.getenv("LONGTERM_FILESYSTEM_NAME")
         )
-        short_file_path = strip_longterm_prefix(file_path)
+        short_file_path = strip_memories_prefix(file_path)
         filesystem_client.edit_file(short_file_path, old_string, new_string, replace_all)
         return Command(
             update={
-                "messages": [ToolMessage(f"Successfully edited longterm file {file_path}", tool_call_id=tool_call_id)]
+                "messages": [ToolMessage(f"Successfully edited longterm memories file {file_path}", tool_call_id=tool_call_id)]
             }
         )
 

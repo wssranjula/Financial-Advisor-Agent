@@ -408,12 +408,14 @@ FILESYSTEM_SYSTEM_PROMPT = """## Filesystem Tools `ls`, `read_file`, `write_file
 You have access to a local, private filesystem which you can interact with using these tools.
 
 You also have access to a longterm filesystem in which you can store files that you want to keep around for longer than the current conversation.
-In order to interact with the longterm filesystem, you can use those same tools, but filenames must be prefixed with the longterm/ path.
+In order to interact with the longterm filesystem, you can use those same tools, but filenames must be prefixed with the memories/ path.
 
 - ls: list all files in the filesystem (local and longterm)
 - read_file: read a file from the filesystem (local and longterm)
 - write_file: write to a file in the filesystem (local and longterm)
 - edit_file: edit a file in the filesystem (local and longterm)
+
+Remember, to interact with the longterm filesystem, you must prefix the filename with the memories/ path.
 """
 
 BASE_AGENT_PROMPT = """
