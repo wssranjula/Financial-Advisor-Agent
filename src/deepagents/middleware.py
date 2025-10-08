@@ -7,11 +7,12 @@ from langchain_core.tools import BaseTool, tool, InjectedToolCallId
 from langchain_core.messages import ToolMessage
 from langchain.chat_models import init_chat_model
 from langgraph.types import Command
+from langgraph.runtime import get_runtime
 from langchain.tools.tool_node import InjectedState
 from typing import Annotated
 from deepagents.state import PlanningState, FilesystemState
-from deepagents.tools import write_todos, ls, read_file, write_file, edit_file
-from deepagents.prompts import WRITE_TODOS_SYSTEM_PROMPT, TASK_SYSTEM_PROMPT, FILESYSTEM_SYSTEM_PROMPT, TASK_TOOL_DESCRIPTION, BASE_AGENT_PROMPT
+from deepagents.tools import write_todos, get_filesystem_tools
+from deepagents.prompts import WRITE_TODOS_SYSTEM_PROMPT, TASK_SYSTEM_PROMPT, FILESYSTEM_SYSTEM_PROMPT, FILESYSTEM_SYSTEM_PROMPT_LONGTERM_SUPPLEMENT, TASK_TOOL_DESCRIPTION, BASE_AGENT_PROMPT
 from deepagents.types import SubAgent, CustomSubAgent
 
 ###########################
@@ -32,10 +33,24 @@ class PlanningMiddleware(AgentMiddleware):
 
 class FilesystemMiddleware(AgentMiddleware):
     state_schema = FilesystemState
-    tools = [ls, read_file, write_file, edit_file]
+
+    def __init__(self, *, use_longterm_memory: bool = False, system_prompt: str = None, custom_tool_descriptions: dict[str, str] = {}) -> None:
+        if use_longterm_memory:
+            runtime = get_runtime()
+            store = runtime.store
+            if store is None: 
+                raise ValueError("Longterm memory is enabled, but no store is available")
+
+        self.system_prompt = FILESYSTEM_SYSTEM_PROMPT
+        if system_prompt is not None:
+            self.system_prompt = system_prompt
+        elif use_longterm_memory:
+            self.system_prompt += FILESYSTEM_SYSTEM_PROMPT_LONGTERM_SUPPLEMENT
+        
+        self.tools = get_filesystem_tools(use_longterm_memory, custom_tool_descriptions)
 
     def modify_model_request(self, request: ModelRequest, agent_state: FilesystemState) -> ModelRequest:
-        request.system_prompt = request.system_prompt + "\n\n" + FILESYSTEM_SYSTEM_PROMPT
+        request.system_prompt = request.system_prompt + "\n\n" + self.system_prompt
         return request
 
 ###########################

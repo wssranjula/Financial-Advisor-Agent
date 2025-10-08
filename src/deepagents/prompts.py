@@ -323,14 +323,15 @@ Since the user is greeting, use the greeting-responder agent to respond with a f
 assistant: "I'm going to use the Task tool to launch with the greeting-responder agent"
 </example>"""
 
-LIST_FILES_TOOL_DESCRIPTION = """Lists all files in the local filesystem.
+LIST_FILES_TOOL_DESCRIPTION = """Lists all files in the filesystem.
 
 Usage:
-- The list_files tool will return a list of all files in the local filesystem.
+- The list_files tool will return a list of all files in the filesystem.
 - This is very useful for exploring the file system and finding the right file to read or edit.
 - You should almost ALWAYS use this tool before using the Read or Edit tools."""
+LIST_FILES_TOOL_DESCRIPTION_LONGTERM_SUPPLEMENT = "\n- Files from the longterm filesystem will be prefixed with the memories/ path."
 
-READ_FILE_TOOL_DESCRIPTION = """Reads a file from the local filesystem. You can access any file directly by using this tool.
+READ_FILE_TOOL_DESCRIPTION = """Reads a file from the filesystem. You can access any file directly by using this tool.
 Assume this tool is able to read all files on the machine. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
 
 Usage:
@@ -339,27 +340,46 @@ Usage:
 - You can optionally specify a line offset and limit (especially handy for long files), but it's recommended to read the whole file by not providing these parameters
 - Any lines longer than 2000 characters will be truncated
 - Results are returned using cat -n format, with line numbers starting at 1
-- You have the capability to call multiple tools in a single response. It is always better to speculatively read multiple files as a batch that are potentially useful. 
+- You have the capability to call multiple tools in a single response. It is always better to speculatively read multiple files as a batch that are potentially useful.
 - If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.
 - You should ALWAYS make sure a file has been read before editing it."""
+READ_FILE_TOOL_DESCRIPTION_LONGTERM_SUPPLEMENT = "\n- file_paths prefixed with the memories/ path will be read from the longterm filesystem."
 
-EDIT_FILE_TOOL_DESCRIPTION = """Performs exact string replacements in files. 
+EDIT_FILE_TOOL_DESCRIPTION = """Performs exact string replacements in files.
 
 Usage:
-- You must use your `Read` tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file. 
+- You must use your `Read` tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file.
 - When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: spaces + line number + tab. Everything after that tab is the actual file content to match. Never include any part of the line number prefix in the old_string or new_string.
 - ALWAYS prefer editing existing files. NEVER write new files unless explicitly required.
 - Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
-- The edit will FAIL if `old_string` is not unique in the file. Either provide a larger string with more surrounding context to make it unique or use `replace_all` to change every instance of `old_string`. 
+- The edit will FAIL if `old_string` is not unique in the file. Either provide a larger string with more surrounding context to make it unique or use `replace_all` to change every instance of `old_string`.
 - Use `replace_all` for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance."""
+EDIT_FILE_TOOL_DESCRIPTION_LONGTERM_SUPPLEMENT = "\n- You can edit files in the longterm filesystem by prefixing the filename with the memories/ path."
 
-WRITE_FILE_TOOL_DESCRIPTION = """Writes to a file in the local filesystem.
+WRITE_FILE_TOOL_DESCRIPTION = """Writes to a new file in the filesystem.
 
 Usage:
 - The file_path parameter must be an absolute path, not a relative path
 - The content parameter must be a string
 - The write_file tool will create the a new file.
-- Prefer to edit existing files over creating new ones when possible."""
+- Prefer to edit existing files over creating new ones when possible.
+- file_paths prefixed with the memories/ path will be written to the longterm filesystem."""
+WRITE_FILE_TOOL_DESCRIPTION_LONGTERM_SUPPLEMENT = "\n- file_paths prefixed with the memories/ path will be written to the longterm filesystem."
+
+FILESYSTEM_SYSTEM_PROMPT = """## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`
+
+You have access to a filesystem which you can interact with using these tools.
+
+- ls: list all files in the filesystem
+- read_file: read a file from the filesystem
+- write_file: write to a file in the filesystem
+- edit_file: edit a file in the filesystem"""
+FILESYSTEM_SYSTEM_PROMPT_LONGTERM_SUPPLEMENT = """
+
+You also have access to a longterm filesystem in which you can store files that you want to keep around for longer than the current conversation.
+In order to interact with the longterm filesystem, you can use those same tools, but filenames must be prefixed with the memories/ path.
+Remember, to interact with the longterm filesystem, you must prefix the filename with the memories/ path."""
+
 
 WRITE_TODOS_SYSTEM_PROMPT = """## `write_todos`
 
@@ -402,21 +422,6 @@ When NOT to use the task tool:
 - Whenever possible, parallelize the work that you do. This is true for both tool_calls, and for tasks. Whenever you have independent steps to complete - make tool_calls, or kick off tasks (subagents) in parallel to accomplish them faster. This saves time for the user, which is incredibly important.
 - Remember to use the `task` tool to silo independent tasks within a multi-part objective.
 - You should use the `task` tool whenever you have a complex task that will take multiple steps, and is independent from other tasks that the agent needs to complete. These agents are highly competent and efficient."""
-
-FILESYSTEM_SYSTEM_PROMPT = """## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`
-
-You have access to a local, private filesystem which you can interact with using these tools.
-
-You also have access to a longterm filesystem in which you can store files that you want to keep around for longer than the current conversation.
-In order to interact with the longterm filesystem, you can use those same tools, but filenames must be prefixed with the memories/ path.
-
-- ls: list all files in the filesystem (local and longterm)
-- read_file: read a file from the filesystem (local and longterm)
-- write_file: write to a file in the filesystem (local and longterm)
-- edit_file: edit a file in the filesystem (local and longterm)
-
-Remember, to interact with the longterm filesystem, you must prefix the filename with the memories/ path.
-"""
 
 BASE_AGENT_PROMPT = """
 In order to complete the objective that the user asks of you, you have access to a number of standard tools.
