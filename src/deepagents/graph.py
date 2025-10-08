@@ -2,6 +2,7 @@ from typing import Sequence, Union, Callable, Any, Type, Optional
 from langchain_core.tools import BaseTool
 from langchain_core.language_models import LanguageModelLike
 from langgraph.types import Checkpointer
+from langgraph.store.base import BaseStore
 from langchain.agents import create_agent
 from langchain.agents.middleware import AgentMiddleware, SummarizationMiddleware, HumanInTheLoopMiddleware
 from langchain.agents.middleware.human_in_the_loop import ToolConfig
@@ -20,6 +21,8 @@ def agent_builder(
     subagents: Optional[list[SubAgent | CustomSubAgent]] = None,
     context_schema: Optional[Type[Any]] = None,
     checkpointer: Optional[Checkpointer] = None,
+    store: Optional[BaseStore] = None,
+    use_longterm_memory: bool = False,
     is_async: bool = False,
 ):
     if model is None:
@@ -27,7 +30,9 @@ def agent_builder(
 
     deepagent_middleware = [
         PlanningMiddleware(),
-        FilesystemMiddleware(),
+        FilesystemMiddleware(
+            use_longterm_memory=use_longterm_memory,
+        ),
         SubAgentMiddleware(
             default_subagent_tools=tools,   # NOTE: These tools are piped to the general-purpose subagent.
             subagents=subagents if subagents is not None else [],
@@ -50,11 +55,12 @@ def agent_builder(
 
     return create_agent(
         model,
-        prompt=instructions + "\n\n" + BASE_AGENT_PROMPT,
+        system_prompt=instructions + "\n\n" + BASE_AGENT_PROMPT,
         tools=tools,
         middleware=deepagent_middleware,
         context_schema=context_schema,
         checkpointer=checkpointer,
+        store=store,
     )
 
 def create_deep_agent(
@@ -65,6 +71,8 @@ def create_deep_agent(
     subagents: Optional[list[SubAgent | CustomSubAgent]] = None,
     context_schema: Optional[Type[Any]] = None,
     checkpointer: Optional[Checkpointer] = None,
+    store: Optional[BaseStore] = None,
+    use_longterm_memory: bool = False,
     tool_configs: Optional[dict[str, bool | ToolConfig]] = None,
 ):
     """Create a deep agent.
@@ -85,6 +93,8 @@ def create_deep_agent(
                 - (optional) `middleware` (list of AgentMiddleware)
         context_schema: The schema of the deep agent.
         checkpointer: Optional checkpointer for persisting agent state between runs.
+        store: Optional store for persisting longterm memories.
+        use_longterm_memory: Whether to use longterm memory - you must provide a store in order to use longterm memory.
         tool_configs: Optional Dict[str, HumanInTheLoopConfig] mapping tool names to interrupt configs.
     """
     return agent_builder(
@@ -95,6 +105,8 @@ def create_deep_agent(
         subagents=subagents,
         context_schema=context_schema,
         checkpointer=checkpointer,
+        store=store,
+        use_longterm_memory=use_longterm_memory,
         tool_configs=tool_configs,
         is_async=False,
     )
@@ -107,6 +119,8 @@ def async_create_deep_agent(
     subagents: Optional[list[SubAgent | CustomSubAgent]] = None,
     context_schema: Optional[Type[Any]] = None,
     checkpointer: Optional[Checkpointer] = None,
+    store: Optional[BaseStore] = None,
+    use_longterm_memory: bool = False,
     tool_configs: Optional[dict[str, bool | ToolConfig]] = None,
 ):
     """Create a deep agent.
@@ -127,6 +141,8 @@ def async_create_deep_agent(
                 - (optional) `middleware` (list of AgentMiddleware)
         context_schema: The schema of the deep agent.
         checkpointer: Optional checkpointer for persisting agent state between runs.
+        use_longterm_memory: Whether to use longterm memory - you must provide a store in order to use longterm memory.
+        store: Optional store for persisting longterm memories.
         tool_configs: Optional Dict[str, HumanInTheLoopConfig] mapping tool names to interrupt configs.
     """
     return agent_builder(
@@ -137,6 +153,8 @@ def async_create_deep_agent(
         subagents=subagents,
         context_schema=context_schema,
         checkpointer=checkpointer,
+        store=store,
+        use_longterm_memory=use_longterm_memory,
         tool_configs=tool_configs,
         is_async=True,
     )
