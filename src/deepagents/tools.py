@@ -4,7 +4,7 @@ from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 from langgraph.runtime import get_runtime, Runtime
 from langchain.tools.tool_node import InjectedState
-from typing import Annotated
+from typing import Annotated, Any
 from deepagents.state import Todo, FilesystemState
 from deepagents.prompts import (
     WRITE_TODOS_TOOL_DESCRIPTION,
@@ -27,12 +27,14 @@ def append_memories_prefix(file_path: str) -> str:
 def strip_memories_prefix(file_path: str) -> str:
     return file_path.replace("memories/", "")
 
-def get_namespace(runtime: Runtime) -> tuple[str, str]:
+def get_namespace(runtime: Runtime[Any]) -> tuple[str, str]:
     namespace = ("filesystem")
+    if runtime.context is None:
+        return namespace
     assistant_id = runtime.context.get("assistant_id")
-    if assistant_id is not None:
-        namespace = (assistant_id, "filesystem")
-    return namespace
+    if assistant_id is None:
+        return namespace
+    return (assistant_id, "filesystem")
 
 @tool(description=WRITE_TODOS_TOOL_DESCRIPTION)
 def write_todos(
@@ -99,10 +101,13 @@ def read_file_tool_generator(has_longterm_memory: bool, custom_description: str 
                 stripped_file_path = strip_memories_prefix(file_path)
                 runtime = get_runtime()
                 store = runtime.store
+                if store is None:
+                    raise ValueError("Longterm memory is enabled, but no store is available")
                 namespace = get_namespace(runtime)
-                content = store.get(namespace, stripped_file_path)
-                if content is None:
+                item = store.get(namespace, stripped_file_path)
+                if item is None:
                     return f"Error: File '{file_path}' not found"
+                content = item.value
             else: 
                 mock_filesystem = state.get("files", {})
                 if file_path not in mock_filesystem:
@@ -171,6 +176,8 @@ def write_file_tool_generator(has_longterm_memory: bool, custom_description: str
                 stripped_file_path = strip_memories_prefix(file_path)
                 runtime = get_runtime()
                 store = runtime.store
+                if store is None:
+                    raise ValueError("Longterm memory is enabled, but no store is available")
                 namespace = get_namespace(runtime)
                 store.put(namespace, stripped_file_path, content)
                 return Command(
@@ -217,11 +224,27 @@ def edit_file_tool_generator(has_longterm_memory: bool, custom_description: str 
                 stripped_file_path = strip_memories_prefix(file_path)
                 runtime = get_runtime()
                 store = runtime.store
+                if store is None:
+                    raise ValueError("Longterm memory is enabled, but no store is available")
                 namespace = get_namespace(runtime)
-                # TODO: Add edit file logic here
+                item = store.get(namespace, stripped_file_path)
+                if item is None:
+                    return f"Error: File '{file_path}' not found"
+                content = item.value
+                if old_string not in content:
+                    return f"Error: String not found in file: '{old_string}'"
+                if not replace_all:
+                    occurrences = content.count(old_string)
+                    if occurrences > 1:
+                        return f"Error: String '{old_string}' appears {occurrences} times in file. Use replace_all=True to replace all instances, or provide a more specific string with surrounding context."
+                    elif occurrences == 0:
+                        return f"Error: String not found in file: '{old_string}'"
+                new_content = content.replace(old_string, new_string)
+                replacement_count = content.count(old_string)
+                store.put(namespace, stripped_file_path, new_content)
                 return Command(
                     update={
-                        "messages": [ToolMessage(f"Updated longterm memories file {file_path}", tool_call_id=tool_call_id)]
+                        "messages": [ToolMessage(f"Successfully replaced {replacement_count} instance(s) of the string in '{file_path}'", tool_call_id=tool_call_id)]
                     }
                 )
             else:

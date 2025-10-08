@@ -369,6 +369,7 @@ WRITE_FILE_TOOL_DESCRIPTION_LONGTERM_SUPPLEMENT = "\n- file_paths prefixed with 
 FILESYSTEM_SYSTEM_PROMPT = """## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`
 
 You have access to a filesystem which you can interact with using these tools.
+Do not prepend a / to file_paths.
 
 - ls: list all files in the filesystem
 - read_file: read a file from the filesystem

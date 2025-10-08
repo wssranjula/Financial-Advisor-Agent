@@ -7,7 +7,7 @@ from langchain_core.tools import BaseTool, tool, InjectedToolCallId
 from langchain_core.messages import ToolMessage
 from langchain.chat_models import init_chat_model
 from langgraph.types import Command
-from langgraph.runtime import get_runtime, Runtime
+from langgraph.runtime import Runtime
 from langchain.tools.tool_node import InjectedState
 from typing import Annotated
 from deepagents.state import PlanningState, FilesystemState
@@ -24,7 +24,10 @@ class PlanningMiddleware(AgentMiddleware):
     tools = [write_todos]
 
     def modify_model_request(self, request: ModelRequest, agent_state: PlanningState, runtime: Runtime) -> ModelRequest:
-        request.system_prompt = request.system_prompt + "\n\n" + WRITE_TODOS_SYSTEM_PROMPT
+        if request.system_prompt is None:
+            request.system_prompt = WRITE_TODOS_SYSTEM_PROMPT
+        else:
+            request.system_prompt = request.system_prompt + "\n\n" + WRITE_TODOS_SYSTEM_PROMPT
         return request
 
 ###########################
@@ -35,12 +38,6 @@ class FilesystemMiddleware(AgentMiddleware):
     state_schema = FilesystemState
 
     def __init__(self, *, use_longterm_memory: bool = False, system_prompt: str = None, custom_tool_descriptions: dict[str, str] = {}) -> None:
-        if use_longterm_memory:
-            runtime = get_runtime()
-            store = runtime.store
-            if store is None: 
-                raise ValueError("Longterm memory is enabled, but no store is available")
-
         self.system_prompt = FILESYSTEM_SYSTEM_PROMPT
         if system_prompt is not None:
             self.system_prompt = system_prompt
@@ -50,7 +47,10 @@ class FilesystemMiddleware(AgentMiddleware):
         self.tools = get_filesystem_tools(use_longterm_memory, custom_tool_descriptions)
 
     def modify_model_request(self, request: ModelRequest, agent_state: FilesystemState, runtime: Runtime) -> ModelRequest:
-        request.system_prompt = request.system_prompt + "\n\n" + self.system_prompt
+        if request.system_prompt is None:
+            request.system_prompt = self.system_prompt
+        else:
+            request.system_prompt = request.system_prompt + "\n\n" + self.system_prompt
         return request
 
 ###########################
@@ -75,7 +75,10 @@ class SubAgentMiddleware(AgentMiddleware):
         self.tools = [task_tool]
 
     def modify_model_request(self, request: ModelRequest, agent_state: AgentState, runtime: Runtime) -> ModelRequest:
-        request.system_prompt = request.system_prompt + "\n\n" + TASK_SYSTEM_PROMPT
+        if request.system_prompt is None:
+            request.system_prompt = TASK_SYSTEM_PROMPT
+        else:
+            request.system_prompt = request.system_prompt + "\n\n" + TASK_SYSTEM_PROMPT
         return request
 
 def _get_agents(
