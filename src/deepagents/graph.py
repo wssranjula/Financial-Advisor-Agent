@@ -80,7 +80,6 @@ def create_deep_agent(
             in order to use longterm memory.
         tool_configs: Optional Dict[str, bool | InterruptOnConfig] mapping tool names to
             interrupt configs.
-        is_async: Whether to use async mode. If True, the agent will use async tools.
         debug: Whether to enable debug mode. Passed through to create_agent.
         name: The name of the agent. Passed through to create_agent.
         cache: The cache to use for the agent. Passed through to create_agent.
