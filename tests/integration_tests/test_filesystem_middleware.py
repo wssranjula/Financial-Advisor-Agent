@@ -237,7 +237,7 @@ class TestFilesystem:
         config = {"configurable": {"thread_id": uuid.uuid4()}}
         response = agent.invoke(
             {
-                "messages": [HumanMessage(content="Read test.txt from local memory")],
+                "messages": [HumanMessage(content="Read test.txt from the local filesystem")],
                 "files": {
                     "/test.txt": FileData(
                         content=["Goodbye world"],
