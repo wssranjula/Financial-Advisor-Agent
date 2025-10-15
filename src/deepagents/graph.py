@@ -4,9 +4,7 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from langchain.agents.factory import create_agent
-from langchain.agents.middleware.human_in_the_loop import HumanInTheLoopMiddleware, InterruptOnConfig
-from langchain.agents.middleware.planning import PlanningMiddleware
-from langchain.agents.middleware.prompt_caching import AnthropicPromptCachingMiddleware
+from langchain.agents.middleware import HumanInTheLoopMiddleware, InterruptOnConfig, TodoListMiddleware
 from langchain.agents.middleware.summarization import SummarizationMiddleware
 from langchain.agents.middleware.types import AgentMiddleware
 from langchain_anthropic import ChatAnthropic
@@ -91,7 +89,7 @@ def create_deep_agent(
         model = get_default_model()
 
     deepagent_middleware = [
-        # PlanningMiddleware(),
+        TodoListMiddleware(),
         FilesystemMiddleware(
             long_term_memory=use_longterm_memory,
         ),
@@ -100,7 +98,7 @@ def create_deep_agent(
             default_tools=tools,
             subagents=subagents if subagents is not None else [],
             default_middleware=[
-                # PlanningMiddleware(),
+                TodoListMiddleware(),
                 FilesystemMiddleware(
                     long_term_memory=use_longterm_memory,
                 ),
@@ -109,7 +107,6 @@ def create_deep_agent(
                     max_tokens_before_summary=120000,
                     messages_to_keep=20,
                 ),
-                # AnthropicPromptCachingMiddleware(ttl="5m", unsupported_model_behavior="ignore"),
             ],
             general_purpose_agent=True,
         ),
@@ -118,7 +115,6 @@ def create_deep_agent(
             max_tokens_before_summary=120000,
             messages_to_keep=20,
         ),
-        # AnthropicPromptCachingMiddleware(ttl="5m", unsupported_model_behavior="ignore"),
     ]
     if tool_configs is not None:
         deepagent_middleware.append(HumanInTheLoopMiddleware(interrupt_on=tool_configs))
