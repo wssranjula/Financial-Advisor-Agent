@@ -91,7 +91,7 @@ def create_deep_agent(
         model = get_default_model()
 
     deepagent_middleware = [
-        PlanningMiddleware(),
+        # PlanningMiddleware(),
         FilesystemMiddleware(
             long_term_memory=use_longterm_memory,
         ),
@@ -99,13 +99,26 @@ def create_deep_agent(
             default_model=model,
             default_tools=tools,
             subagents=subagents if subagents is not None else [],
+            default_middleware=[
+                # PlanningMiddleware(),
+                FilesystemMiddleware(
+                    long_term_memory=use_longterm_memory,
+                ),
+                SummarizationMiddleware(
+                    model=model,
+                    max_tokens_before_summary=120000,
+                    messages_to_keep=20,
+                ),
+                # AnthropicPromptCachingMiddleware(ttl="5m", unsupported_model_behavior="ignore"),
+            ],
+            general_purpose_agent=True,
         ),
         SummarizationMiddleware(
             model=model,
             max_tokens_before_summary=120000,
             messages_to_keep=20,
         ),
-        AnthropicPromptCachingMiddleware(ttl="5m", unsupported_model_behavior="ignore"),
+        # AnthropicPromptCachingMiddleware(ttl="5m", unsupported_model_behavior="ignore"),
     ]
     if tool_configs is not None:
         deepagent_middleware.append(HumanInTheLoopMiddleware(interrupt_on=tool_configs))

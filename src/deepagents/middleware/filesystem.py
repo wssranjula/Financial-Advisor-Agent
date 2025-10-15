@@ -1,7 +1,7 @@
 """Middleware for providing filesystem tools to an agent."""
 # ruff: noqa: E501
 
-from collections.abc import Callable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from typing import TYPE_CHECKING, Annotated, Any, NotRequired
 
 if TYPE_CHECKING:
@@ -1004,6 +1004,24 @@ class FilesystemMiddleware(AgentMiddleware):
             request.system_prompt = request.system_prompt + "\n\n" + self.system_prompt if request.system_prompt else self.system_prompt
         return handler(request)
 
+    async def awrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], Awaitable[ModelResponse]],
+    ) -> ModelResponse:
+        """(async) Update the system prompt to include instructions on using the filesystem.
+
+        Args:
+            request: The model request being processed.
+            handler: The handler function to call with the modified request.
+
+        Returns:
+            The model response from the handler.
+        """
+        if self.system_prompt is not None:
+            request.system_prompt = request.system_prompt + "\n\n" + self.system_prompt if request.system_prompt else self.system_prompt
+        return await handler(request)
+
     def wrap_tool_call(
         self,
         request: ToolCallRequest,
@@ -1023,6 +1041,49 @@ class FilesystemMiddleware(AgentMiddleware):
             return handler(request)
 
         tool_result = handler(request)
+
+        # Only handle ToolMessages, not Commands
+        if isinstance(tool_result, ToolMessage) and isinstance(tool_result.content, str):
+            content = tool_result.content
+            # Estimating tokens to be 4 characters per token
+            if len(content) > 4 * self.tool_token_limit_before_evict:
+                file_path = f"/large_tool_results/{tool_result.tool_call_id}"
+                tool_large_tool_msg = (
+                    f"Tool result too large, the result of this tool call {tool_result.tool_call_id}"
+                    f" was saved in the filesystem at this path: {file_path} . "
+                    "You can read the result from the filesystem by using the read_file tool, "
+                    "but make sure to only read part of the result at a time. "
+                    "You can do this by specifying an offset and limit in the read_file tool call. "
+                    "For example, to read the first 100 lines, you can use the read_file tool with offset=0 and limit=100."
+                )
+                return Command(
+                    update={
+                        "messages": [ToolMessage(tool_large_tool_msg, tool_call_id=request.tool_call["id"])],
+                        "files": {file_path: _create_file_data(content)},
+                    }
+                )
+
+        return tool_result
+
+    async def awrap_tool_call(
+        self,
+        request: ToolCallRequest,
+        handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
+    ) -> ToolMessage | Command:
+        """(async)Check the size of the tool call result and evict to filesystem if too large.
+
+        Args:
+            request: The tool call request being processed.
+            handler: The handler function to call with the modified request.
+
+        Returns:
+            The raw ToolMessage, or a pseudo tool message with the ToolResult in state.
+        """
+        # If no token limit specified, or if it is a filesystem tool, do not evict
+        if self.tool_token_limit_before_evict is None or request.tool_call["name"] in TOOL_GENERATORS:
+            return await handler(request)
+
+        tool_result = await handler(request)
 
         # Only handle ToolMessages, not Commands
         if isinstance(tool_result, ToolMessage) and isinstance(tool_result.content, str):
