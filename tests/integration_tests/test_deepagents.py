@@ -1,6 +1,20 @@
-from deepagents.graph import create_deep_agent
 from langchain.agents import create_agent
-from tests.utils import assert_all_deepagent_qualities, SAMPLE_MODEL, sample_tool, get_weather, get_soccer_scores, SampleMiddlewareWithTools, SampleMiddlewareWithToolsAndState, WeatherToolMiddleware, ResearchMiddleware, ResearchMiddlewareWithTools, TOY_BASKETBALL_RESEARCH
+
+from deepagents.graph import create_deep_agent
+from tests.utils import (
+    SAMPLE_MODEL,
+    TOY_BASKETBALL_RESEARCH,
+    ResearchMiddleware,
+    ResearchMiddlewareWithTools,
+    SampleMiddlewareWithTools,
+    SampleMiddlewareWithToolsAndState,
+    WeatherToolMiddleware,
+    assert_all_deepagent_qualities,
+    get_soccer_scores,
+    get_weather,
+    sample_tool,
+)
+
 
 class TestDeepAgents:
     def test_base_deep_agent(self):
@@ -28,7 +42,7 @@ class TestDeepAgents:
             {
                 "name": "weather_agent",
                 "description": "Use this agent to get the weather",
-                "prompt": "You are a weather agent.",
+                "system_prompt": "You are a weather agent.",
                 "tools": [get_weather],
                 "model": SAMPLE_MODEL,
             }
@@ -45,7 +59,7 @@ class TestDeepAgents:
             {
                 "name": "weather_agent",
                 "description": "Use this agent to get the weather",
-                "prompt": "You are a weather agent.",
+                "system_prompt": "You are a weather agent.",
                 "tools": [get_weather],
                 "model": SAMPLE_MODEL,
             }
@@ -62,7 +76,7 @@ class TestDeepAgents:
             {
                 "name": "weather_agent",
                 "description": "Use this agent to get the weather",
-                "prompt": "You are a weather agent.",
+                "system_prompt": "You are a weather agent.",
                 "tools": [],
                 "model": SAMPLE_MODEL,
                 "middleware": [WeatherToolMiddleware()],
@@ -80,19 +94,19 @@ class TestDeepAgents:
             {
                 "name": "weather_agent",
                 "description": "Use this agent to get the weather",
-                "prompt": "You are a weather agent.",
+                "system_prompt": "You are a weather agent.",
                 "tools": [get_weather],
                 "model": SAMPLE_MODEL,
             },
             {
                 "name": "soccer_agent",
                 "description": "Use this agent to get the latest soccer scores",
-                "graph": create_agent(
+                "runnable": create_agent(
                     model=SAMPLE_MODEL,
                     tools=[get_soccer_scores],
                     system_prompt="You are a soccer agent.",
-                )
-            }
+                ),
+            },
         ]
         agent = create_deep_agent(tools=[sample_tool], subagents=subagents)
         assert_all_deepagent_qualities(agent)
@@ -107,7 +121,7 @@ class TestDeepAgents:
             {
                 "name": "basketball_info_agent",
                 "description": "Use this agent to get surface level info on any basketball topic",
-                "prompt": "You are a basketball info agent.",
+                "system_prompt": "You are a basketball info agent.",
                 "middleware": [ResearchMiddlewareWithTools()],
             }
         ]
@@ -125,12 +139,14 @@ class TestDeepAgents:
             {
                 "name": "basketball_info_agent",
                 "description": "Use this agent to get surface level info on any basketball topic",
-                "prompt": "You are a basketball info agent.",
+                "system_prompt": "You are a basketball info agent.",
             }
         ]
         agent = create_deep_agent(tools=[sample_tool], subagents=subagents)
         assert_all_deepagent_qualities(agent)
-        result = agent.invoke({"messages": [{"role": "user", "content": "Use the basketball info subagent to call the sample tool"}]}, config={"recursion_limit": 100})
+        result = agent.invoke(
+            {"messages": [{"role": "user", "content": "Use the basketball info subagent to call the sample tool"}]}, config={"recursion_limit": 100}
+        )
         agent_messages = [msg for msg in result.get("messages", []) if msg.type == "ai"]
         tool_calls = [tool_call for msg in agent_messages for tool_call in msg.tool_calls]
         assert any([tool_call["name"] == "task" and tool_call["args"].get("subagent_type") == "basketball_info_agent" for tool_call in tool_calls])

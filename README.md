@@ -57,8 +57,8 @@ Use this to run an internet search for a given query. You can specify the number
 
 # Create the agent
 agent = create_deep_agent(
-    [internet_search],
-    research_instructions,
+    tools=[internet_search],
+    system_prompt=research_instructions,
 )
 
 # Invoke the agent
@@ -206,7 +206,7 @@ critique_sub_agent = {
     "description": "Critique the final report",
     "prompt": "You are a tough editor.",
     "model_settings": {
-        "model": "anthropic:claude-3-5-haiku-20241022",
+        "model": "claude-sonnet-4-202505142",
         "temperature": 0,
         "max_tokens": 8192
     }
