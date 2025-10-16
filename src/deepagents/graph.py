@@ -111,6 +111,7 @@ def create_deep_agent(
                     messages_to_keep=20,
                 ),
             ],
+            default_tool_configs=tool_configs,
             general_purpose_agent=True,
         ),
         SummarizationMiddleware(

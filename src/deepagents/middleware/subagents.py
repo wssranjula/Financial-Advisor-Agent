@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from typing import Annotated, Any, NotRequired, TypedDict, cast
 
 from langchain.agents import create_agent
+from langchain.agents.middleware import HumanInTheLoopMiddleware, InterruptOnConfig
 from langchain.agents.middleware.types import AgentMiddleware, ModelRequest, ModelResponse
 from langchain.tools import BaseTool, InjectedState, InjectedToolCallId
 from langchain_core.language_models import BaseChatModel
@@ -44,6 +45,9 @@ class SubAgent(TypedDict):
 
     middleware: NotRequired[list[AgentMiddleware]]
     """Additional middleware to append after `default_middleware`."""
+
+    tool_configs: NotRequired[dict[str, bool | InterruptOnConfig]]
+    """The tool configs to use for the agent."""
 
 
 class CompiledSubAgent(TypedDict):
@@ -211,6 +215,7 @@ def _get_subagents(
     default_model: str | BaseChatModel,
     default_tools: Sequence[BaseTool | Callable | dict[str, Any]],
     default_middleware: list[AgentMiddleware] | None,
+    default_tool_configs: dict[str, bool | InterruptOnConfig] | None,
     subagents: list[SubAgent | CompiledSubAgent],
     general_purpose_agent: bool,
 ) -> tuple[dict[str, Any], list[str]]:
@@ -221,6 +226,8 @@ def _get_subagents(
         default_tools: Default tools for subagents that don't specify tools.
         default_middleware: Middleware to apply to all subagents. If `None`,
             no default middleware is applied.
+        default_tool_configs: The tool configs to use for the default general-purpose subagent. These
+            are also the fallback for any subagents that don't specify their own tool configs.
         subagents: List of agent specifications or pre-compiled agents.
         general_purpose_agent: Whether to include a general-purpose subagent.
 
@@ -236,11 +243,14 @@ def _get_subagents(
 
     # Create general-purpose agent if enabled
     if general_purpose_agent:
+        general_purpose_middleware = [*default_subagent_middleware]
+        if default_tool_configs:
+            general_purpose_middleware.append(HumanInTheLoopMiddleware(interrupt_on=default_tool_configs))
         general_purpose_subagent = create_agent(
             default_model,
             system_prompt=DEFAULT_SUBAGENT_PROMPT,
             tools=default_tools,
-            middleware=default_subagent_middleware,
+            middleware=general_purpose_middleware,
         )
         agents["general-purpose"] = general_purpose_subagent
         subagent_descriptions.append(f"- general-purpose: {DEFAULT_GENERAL_PURPOSE_DESCRIPTION}")
@@ -258,6 +268,10 @@ def _get_subagents(
 
         _middleware = [*default_subagent_middleware, *agent_["middleware"]] if "middleware" in agent_ else default_subagent_middleware
 
+        tool_configs = agent_.get("tool_configs", default_tool_configs)
+        if tool_configs:
+            _middleware.append(HumanInTheLoopMiddleware(interrupt_on=tool_configs))
+
         agents[agent_["name"]] = create_agent(
             subagent_model,
             system_prompt=agent_["system_prompt"],
@@ -273,6 +287,7 @@ def _create_task_tool(
     default_model: str | BaseChatModel,
     default_tools: Sequence[BaseTool | Callable | dict[str, Any]],
     default_middleware: list[AgentMiddleware] | None,
+    default_tool_configs: dict[str, bool | InterruptOnConfig] | None,
     subagents: list[SubAgent | CompiledSubAgent],
     general_purpose_agent: bool,
     task_description: str | None = None,
@@ -283,6 +298,8 @@ def _create_task_tool(
         default_model: Default model for subagents.
         default_tools: Default tools for subagents.
         default_middleware: Middleware to apply to all subagents.
+        default_tool_configs: The tool configs to use for the default general-purpose subagent. These
+            are also the fallback for any subagents that don't specify their own tool configs.
         subagents: List of subagent specifications.
         general_purpose_agent: Whether to include general-purpose agent.
         task_description: Custom description for the task tool. If `None`,
@@ -295,6 +312,7 @@ def _create_task_tool(
         default_model=default_model,
         default_tools=default_tools,
         default_middleware=default_middleware,
+        default_tool_configs=default_tool_configs,
         subagents=subagents,
         general_purpose_agent=general_purpose_agent,
     )
@@ -377,6 +395,8 @@ class SubAgentMiddleware(AgentMiddleware):
         default_tools: The tools to use for the default general-purpose subagent.
         default_middleware: Default middleware to apply to all subagents. If `None` (default),
             no default middleware is applied. Pass a list to specify custom middleware.
+        default_tool_configs: The tool configs to use for the default general-purpose subagent. These
+            are also the fallback for any subagents that don't specify their own tool configs.
         subagents: A list of additional subagents to provide to the agent.
         system_prompt: Full system prompt override. When provided, completely replaces
             the agent's system prompt.
@@ -420,6 +440,7 @@ class SubAgentMiddleware(AgentMiddleware):
         default_model: str | BaseChatModel,
         default_tools: Sequence[BaseTool | Callable | dict[str, Any]] | None = None,
         default_middleware: list[AgentMiddleware] | None = None,
+        default_tool_configs: dict[str, bool | InterruptOnConfig] | None = None,
         subagents: list[SubAgent | CompiledSubAgent] | None = None,
         system_prompt: str | None = TASK_SYSTEM_PROMPT,
         general_purpose_agent: bool = True,
@@ -432,6 +453,7 @@ class SubAgentMiddleware(AgentMiddleware):
             default_model=default_model,
             default_tools=default_tools or [],
             default_middleware=default_middleware,
+            default_tool_configs=default_tool_configs,
             subagents=subagents or [],
             general_purpose_agent=general_purpose_agent,
             task_description=task_description,
