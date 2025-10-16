@@ -36,6 +36,7 @@ def get_premier_league_standings(tool_call_id: Annotated[str, InjectedToolCallId
         }
     )
 
+
 @tool(description="Use this tool to get la liga standings")
 def get_la_liga_standings(tool_call_id: Annotated[str, InjectedToolCallId]):
     long_tool_msg = "This is a long tool message that should be evicted to the filesystem.\n" * 300

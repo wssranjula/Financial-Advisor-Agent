@@ -910,9 +910,10 @@ def _get_filesystem_tools(custom_tool_descriptions: dict[str, str] | None = None
         tools.append(tool)
     return tools
 
-TOO_LARGE_TOOL_MSG = """Tool result too large, the result of this tool call {tool_call_id} was saved in the filesystem at this path: {file_path} 
-You can read the result from the filesystem by using the read_file tool, but make sure to only read part of the result at a time. 
-You can do this by specifying an offset and limit in the read_file tool call. 
+
+TOO_LARGE_TOOL_MSG = """Tool result too large, the result of this tool call {tool_call_id} was saved in the filesystem at this path: {file_path}
+You can read the result from the filesystem by using the read_file tool, but make sure to only read part of the result at a time.
+You can do this by specifying an offset and limit in the read_file tool call.
 For example, to read the first 100 lines, you can use the read_file tool with offset=0 and limit=100.
 
 Here are the first 10 lines of the result:
@@ -977,11 +978,11 @@ class FilesystemMiddleware(AgentMiddleware):
 
         self.tools = _get_filesystem_tools(custom_tool_descriptions, long_term_memory=long_term_memory)
 
-    def before_agent(self, state: FilesystemState, runtime: Runtime[Any]) -> dict[str, Any] | None:
+    def before_agent(self, state: AgentState, runtime: Runtime[Any]) -> dict[str, Any] | None:  # noqa: ARG002
         """Validate that store is available if longterm memory is enabled.
 
         Args:
-            request: The model request being processed.
+            state: The state of the agent.
             runtime: The LangGraph runtime.
 
         Returns:
@@ -992,7 +993,7 @@ class FilesystemMiddleware(AgentMiddleware):
         """
         if self.long_term_memory and runtime.store is None:
             msg = "Longterm memory is enabled, but no store is available"
-            raise ValueError(msg)        
+            raise ValueError(msg)
         return None
 
     def wrap_model_call(
@@ -1031,48 +1032,54 @@ class FilesystemMiddleware(AgentMiddleware):
             request.system_prompt = request.system_prompt + "\n\n" + self.system_prompt if request.system_prompt else self.system_prompt
         return await handler(request)
 
-    def _intercept_large_tool_result(self, tool_result: ToolMessage | Command) -> Command:
+    def _intercept_large_tool_result(self, tool_result: ToolMessage | Command) -> ToolMessage | Command:
         if isinstance(tool_result, ToolMessage) and isinstance(tool_result.content, str):
             content = tool_result.content
-            if len(content) > 4 * self.tool_token_limit_before_evict:
+            if self.tool_token_limit_before_evict and len(content) > 4 * self.tool_token_limit_before_evict:
                 file_path = f"/large_tool_results/{tool_result.tool_call_id}"
                 file_data = _create_file_data(content)
                 state_update = {
-                    "messages": [ToolMessage(TOO_LARGE_TOOL_MSG.format(
-                        tool_call_id=tool_result.tool_call_id, 
-                        file_path=file_path, 
-                        content_sample=_format_content_with_line_numbers(file_data["content"][:10], format_style="tab", start_line=1)
-                    ), tool_call_id=tool_result.tool_call_id)],
+                    "messages": [
+                        ToolMessage(
+                            TOO_LARGE_TOOL_MSG.format(
+                                tool_call_id=tool_result.tool_call_id,
+                                file_path=file_path,
+                                content_sample=_format_content_with_line_numbers(file_data["content"][:10], format_style="tab", start_line=1),
+                            ),
+                            tool_call_id=tool_result.tool_call_id,
+                        )
+                    ],
                     "files": {file_path: file_data},
                 }
-                print("Returning command", state_update)
                 return Command(update=state_update)
         elif isinstance(tool_result, Command):
-            message_updates = tool_result.update.get("messages", [])
-            file_updates = tool_result.update.get("files", {})
-            
+            update = tool_result.update
+            if update is None:
+                return tool_result
+            message_updates = update.get("messages", [])
+            file_updates = update.get("files", {})
+
             edited_message_updates = []
             for message in message_updates:
-                if isinstance(message, ToolMessage) and isinstance(message.content, str):
+                if self.tool_token_limit_before_evict and isinstance(message, ToolMessage) and isinstance(message.content, str):
                     content = message.content
                     if len(content) > 4 * self.tool_token_limit_before_evict:
                         file_path = f"/large_tool_results/{message.tool_call_id}"
                         file_data = _create_file_data(content)
-                        edited_message_updates.append(ToolMessage(TOO_LARGE_TOOL_MSG.format(
-                            tool_call_id=message.tool_call_id, 
-                            file_path=file_path, 
-                            content_sample=_format_content_with_line_numbers(file_data["content"][:10], format_style="tab", start_line=1)
-                        ), tool_call_id=message.tool_call_id))
+                        edited_message_updates.append(
+                            ToolMessage(
+                                TOO_LARGE_TOOL_MSG.format(
+                                    tool_call_id=message.tool_call_id,
+                                    file_path=file_path,
+                                    content_sample=_format_content_with_line_numbers(file_data["content"][:10], format_style="tab", start_line=1),
+                                ),
+                                tool_call_id=message.tool_call_id,
+                            )
+                        )
                         file_updates[file_path] = file_data
                         continue
                 edited_message_updates.append(message)
-            return Command(
-                update={
-                    **tool_result.update, 
-                    "messages": edited_message_updates, 
-                    "files": file_updates
-                }
-            )
+            return Command(update={**update, "messages": edited_message_updates, "files": file_updates})
         return tool_result
 
     def wrap_tool_call(
@@ -1094,7 +1101,6 @@ class FilesystemMiddleware(AgentMiddleware):
             return handler(request)
 
         tool_result = handler(request)
-        print("Incoming tool result: ", tool_result)
         return self._intercept_large_tool_result(tool_result)
 
     async def awrap_tool_call(

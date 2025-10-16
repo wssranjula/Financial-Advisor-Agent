@@ -3,10 +3,11 @@
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from langchain.agents.factory import create_agent, ResponseFormat
+from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware, InterruptOnConfig, TodoListMiddleware
 from langchain.agents.middleware.summarization import SummarizationMiddleware
 from langchain.agents.middleware.types import AgentMiddleware
+from langchain.agents.structured_output import ResponseFormat
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool

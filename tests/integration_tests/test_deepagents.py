@@ -157,7 +157,7 @@ class TestDeepAgents:
     def test_response_format_tool_strategy(self):
         class StructuredOutput(BaseModel):
             pokemon: list[str]
-        
+
         agent = create_deep_agent(response_format=ToolStrategy(schema=StructuredOutput))
         response = agent.invoke({"messages": [{"role": "user", "content": "Who are all of the Kanto starters?"}]})
         structured_output = response["structured_response"]
