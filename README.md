@@ -224,10 +224,10 @@ agent = create_deep_agent(
 ### `middleware` (Optional)
 Both the main agent and sub-agents can take additional custom AgentMiddleware. Middleware is the best supported approach for extending the state_schema, adding additional tools, and adding pre / post model hooks. See this [doc](https://docs.langchain.com/oss/python/langchain/middleware) to learn more about Middleware and how you can use it!
 
-### `tool_configs` (Optional)
+### `interrupt_on` (Optional)
 Tool configs are used to specify how to handle Human In The Loop interactions on certain tools that require additional human oversight. 
 
-These tool_configs are passed to our prebuilt [HITL middleware](https://docs.langchain.com/oss/python/langchain/middleware#human-in-the-loop) so that the agent pauses execution and waits for feedback from the user before executing configured tools.
+These tool configs are passed to our prebuilt [HITL middleware](https://docs.langchain.com/oss/python/langchain/middleware#human-in-the-loop) so that the agent pauses execution and waits for feedback from the user before executing configured tools.
 
 ## Deep Agent Details
 
@@ -294,7 +294,7 @@ If you want to omit some deepagents functionality, use specific middleware compo
 
 ### Human-in-the-Loop
 
-`deepagents` supports human-in-the-loop approval for tool execution. You can configure specific tools to require human approval before execution using the `tool_configs` parameter, which maps tool names to a `HumanInTheLoopConfig`.
+`deepagents` supports human-in-the-loop approval for tool execution. You can configure specific tools to require human approval before execution using the `interrupt_on` parameter, which maps tool names to a `HumanInTheLoopConfig`.
 
 `HumanInTheLoopConfig` is how you specify what type of human in the loop patterns are supported. 
 It is a dictionary with four specific keys:
@@ -318,7 +318,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 agent = create_deep_agent(
     tools=[your_tools],
     instructions="Your instructions here",
-    tool_configs={
+    interrupt_on={
         # You can specify a dictionary for fine grained control over what interrupt options exist
         "tool_1": {
             "allow_respond": True,

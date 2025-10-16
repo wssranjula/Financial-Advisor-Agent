@@ -46,7 +46,7 @@ def create_deep_agent(
     checkpointer: Checkpointer | None = None,
     store: BaseStore | None = None,
     use_longterm_memory: bool = False,
-    tool_configs: dict[str, bool | InterruptOnConfig] | None = None,
+    interrupt_on: dict[str, bool | InterruptOnConfig] | None = None,
     debug: bool = False,
     name: str | None = None,
     cache: BaseCache | None = None,
@@ -79,7 +79,7 @@ def create_deep_agent(
         store: Optional store for persisting longterm memories.
         use_longterm_memory: Whether to use longterm memory - you must provide a store
             in order to use longterm memory.
-        tool_configs: Optional Dict[str, bool | InterruptOnConfig] mapping tool names to
+        interrupt_on: Optional Dict[str, bool | InterruptOnConfig] mapping tool names to
             interrupt configs.
         debug: Whether to enable debug mode. Passed through to create_agent.
         name: The name of the agent. Passed through to create_agent.
@@ -111,7 +111,7 @@ def create_deep_agent(
                     messages_to_keep=20,
                 ),
             ],
-            default_tool_configs=tool_configs,
+            default_interrupt_on=interrupt_on,
             general_purpose_agent=True,
         ),
         SummarizationMiddleware(
@@ -120,8 +120,8 @@ def create_deep_agent(
             messages_to_keep=20,
         ),
     ]
-    if tool_configs is not None:
-        deepagent_middleware.append(HumanInTheLoopMiddleware(interrupt_on=tool_configs))
+    if interrupt_on is not None:
+        deepagent_middleware.append(HumanInTheLoopMiddleware(interrupt_on=interrupt_on))
     if middleware is not None:
         deepagent_middleware.extend(middleware)
 

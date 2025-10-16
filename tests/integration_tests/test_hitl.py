@@ -16,7 +16,7 @@ SAMPLE_TOOL_CONFIG = {
 class TestHITL:
     def test_hitl_agent(self):
         checkpointer = MemorySaver()
-        agent = create_deep_agent(tools=[sample_tool, get_weather, get_soccer_scores], tool_configs=SAMPLE_TOOL_CONFIG, checkpointer=checkpointer)
+        agent = create_deep_agent(tools=[sample_tool, get_weather, get_soccer_scores], interrupt_on=SAMPLE_TOOL_CONFIG, checkpointer=checkpointer)
         config = {"configurable": {"thread_id": uuid.uuid4()}}
         assert_all_deepagent_qualities(agent)
         result = agent.invoke(
@@ -65,7 +65,7 @@ class TestHITL:
 
     def test_subagent_with_hitl(self):
         checkpointer = MemorySaver()
-        agent = create_deep_agent(tools=[sample_tool, get_weather, get_soccer_scores], tool_configs=SAMPLE_TOOL_CONFIG, checkpointer=checkpointer)
+        agent = create_deep_agent(tools=[sample_tool, get_weather, get_soccer_scores], interrupt_on=SAMPLE_TOOL_CONFIG, checkpointer=checkpointer)
         config = {"configurable": {"thread_id": uuid.uuid4()}}
         assert_all_deepagent_qualities(agent)
         result = agent.invoke(
@@ -101,11 +101,11 @@ class TestHITL:
         result2 = agent.invoke(Command(resume={"decisions": [{"type": "approve"}, {"type": "approve"}]}), config=config)
         assert "__interrupt__" not in result2
 
-    def test_subagent_with_custom_tool_configs(self):
+    def test_subagent_with_custom_interrupt_on(self):
         checkpointer = MemorySaver()
         agent = create_deep_agent(
             tools=[sample_tool, get_weather, get_soccer_scores],
-            tool_configs=SAMPLE_TOOL_CONFIG,
+            interrupt_on=SAMPLE_TOOL_CONFIG,
             checkpointer=checkpointer,
             subagents=[
                 {
@@ -113,7 +113,7 @@ class TestHITL:
                     "description": "A subagent that can handle all sorts of tasks",
                     "system_prompt": "You are a task handler. You can handle all sorts of tasks.",
                     "tools": [sample_tool, get_weather, get_soccer_scores],
-                    "tool_configs": {"sample_tool": False, "get_weather": True, "get_soccer_scores": True},
+                    "interrupt_on": {"sample_tool": False, "get_weather": True, "get_soccer_scores": True},
                 },
             ],
         )
