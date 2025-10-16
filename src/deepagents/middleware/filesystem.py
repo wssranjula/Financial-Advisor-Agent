@@ -910,6 +910,14 @@ def _get_filesystem_tools(custom_tool_descriptions: dict[str, str] | None = None
         tools.append(tool)
     return tools
 
+TOO_LARGE_TOOL_MSG = """Tool result too large, the result of this tool call {tool_call_id}
+was saved in the filesystem at this path: {file_path} . 
+You can read the result from the filesystem by using the read_file tool, 
+but make sure to only read part of the result at a time. 
+You can do this by specifying an offset and limit in the read_file tool call. 
+For example, to read the first 100 lines, you can use the read_file tool with offset=0 and limit=100.
+"""
+
 
 class FilesystemMiddleware(AgentMiddleware):
     """Middleware for providing filesystem tools to an agent.
@@ -968,7 +976,7 @@ class FilesystemMiddleware(AgentMiddleware):
 
         self.tools = _get_filesystem_tools(custom_tool_descriptions, long_term_memory=long_term_memory)
 
-    def before_model_call(self, request: ModelRequest, runtime: Runtime[Any]) -> ModelRequest:
+    def before_agent(self, state: FilesystemState, runtime: Runtime[Any]) -> dict[str, Any] | None:
         """Validate that store is available if longterm memory is enabled.
 
         Args:
@@ -983,8 +991,8 @@ class FilesystemMiddleware(AgentMiddleware):
         """
         if self.long_term_memory and runtime.store is None:
             msg = "Longterm memory is enabled, but no store is available"
-            raise ValueError(msg)
-        return request
+            raise ValueError(msg)        
+        return None
 
     def wrap_model_call(
         self,
@@ -1022,6 +1030,41 @@ class FilesystemMiddleware(AgentMiddleware):
             request.system_prompt = request.system_prompt + "\n\n" + self.system_prompt if request.system_prompt else self.system_prompt
         return await handler(request)
 
+    def _intercept_large_tool_result(self, tool_result: ToolMessage | Command) -> Command:
+        if isinstance(tool_result, ToolMessage) and isinstance(tool_result.content, str):
+            content = tool_result.content
+            if len(content) > 4 * self.tool_token_limit_before_evict:
+                file_path = f"/large_tool_results/{tool_result.tool_call_id}"
+                state_update = {
+                    "messages": [ToolMessage(TOO_LARGE_TOOL_MSG.format(tool_call_id=tool_result.tool_call_id, file_path=file_path), tool_call_id=tool_result.tool_call_id)],
+                    "files": {file_path: _create_file_data(content)},
+                }
+                return Command(update=state_update)
+        elif isinstance(tool_result, Command):
+            message_updates = tool_result.update.get("messages", [])
+            file_updates = tool_result.update.get("files", {})
+            
+            edited_message_updates = []
+            for message in message_updates:
+                if isinstance(message, ToolMessage) and isinstance(message.content, str):
+                    content = message.content
+                    if len(content) > 4 * self.tool_token_limit_before_evict:
+                        file_path = f"/large_tool_results/{message.tool_call_id}"
+                        edited_message_updates.append(ToolMessage(TOO_LARGE_TOOL_MSG.format(tool_call_id=message.tool_call_id, file_path=file_path), tool_call_id=message.tool_call_id))
+                        file_updates[file_path] = _create_file_data(content)
+                        continue
+                edited_message_updates.append(message)
+            return Command(
+                update={
+                    **tool_result.update, 
+                    "messages": edited_message_updates, 
+                    "files": file_updates
+                }
+            )
+        else:
+            # Fallthrough case, should not happen
+            return tool_result
+
     def wrap_tool_call(
         self,
         request: ToolCallRequest,
@@ -1041,29 +1084,7 @@ class FilesystemMiddleware(AgentMiddleware):
             return handler(request)
 
         tool_result = handler(request)
-
-        # Only handle ToolMessages, not Commands
-        if isinstance(tool_result, ToolMessage) and isinstance(tool_result.content, str):
-            content = tool_result.content
-            # Estimating tokens to be 4 characters per token
-            if len(content) > 4 * self.tool_token_limit_before_evict:
-                file_path = f"/large_tool_results/{tool_result.tool_call_id}"
-                tool_large_tool_msg = (
-                    f"Tool result too large, the result of this tool call {tool_result.tool_call_id}"
-                    f" was saved in the filesystem at this path: {file_path} . "
-                    "You can read the result from the filesystem by using the read_file tool, "
-                    "but make sure to only read part of the result at a time. "
-                    "You can do this by specifying an offset and limit in the read_file tool call. "
-                    "For example, to read the first 100 lines, you can use the read_file tool with offset=0 and limit=100."
-                )
-                return Command(
-                    update={
-                        "messages": [ToolMessage(tool_large_tool_msg, tool_call_id=request.tool_call["id"])],
-                        "files": {file_path: _create_file_data(content)},
-                    }
-                )
-
-        return tool_result
+        return self._intercept_large_tool_result(tool_result)
 
     async def awrap_tool_call(
         self,
@@ -1084,26 +1105,4 @@ class FilesystemMiddleware(AgentMiddleware):
             return await handler(request)
 
         tool_result = await handler(request)
-
-        # Only handle ToolMessages, not Commands
-        if isinstance(tool_result, ToolMessage) and isinstance(tool_result.content, str):
-            content = tool_result.content
-            # Estimating tokens to be 4 characters per token
-            if len(content) > 4 * self.tool_token_limit_before_evict:
-                file_path = f"/large_tool_results/{tool_result.tool_call_id}"
-                tool_large_tool_msg = (
-                    f"Tool result too large, the result of this tool call {tool_result.tool_call_id}"
-                    f" was saved in the filesystem at this path: {file_path} . "
-                    "You can read the result from the filesystem by using the read_file tool, "
-                    "but make sure to only read part of the result at a time. "
-                    "You can do this by specifying an offset and limit in the read_file tool call. "
-                    "For example, to read the first 100 lines, you can use the read_file tool with offset=0 and limit=100."
-                )
-                return Command(
-                    update={
-                        "messages": [ToolMessage(tool_large_tool_msg, tool_call_id=request.tool_call["id"])],
-                        "files": {file_path: _create_file_data(content)},
-                    }
-                )
-
-        return tool_result
+        return self._intercept_large_tool_result(tool_result)

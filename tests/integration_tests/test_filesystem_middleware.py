@@ -6,6 +6,8 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.store.memory import InMemoryStore
+from langgraph.types import Command
+from langchain_core.messages import ToolMessage
 
 from deepagents.graph import create_deep_agent
 from deepagents.middleware.filesystem import (
@@ -14,7 +16,7 @@ from deepagents.middleware.filesystem import (
     FileData,
     FilesystemMiddleware,
 )
-from tests.utils import get_nba_standings, get_nfl_standings
+from tests.utils import get_nba_standings, get_nfl_standings, get_premier_league_standings, ResearchMiddleware
 
 
 @pytest.mark.requires("langchain_anthropic")
@@ -507,7 +509,7 @@ class TestFilesystem:
             tools=[get_nba_standings],
             middleware=[
                 FilesystemMiddleware(
-                    long_term_memory=True,
+                    long_term_memory=False,
                 )
             ],
         )
@@ -525,7 +527,7 @@ class TestFilesystem:
             tools=[get_nfl_standings],
             middleware=[
                 FilesystemMiddleware(
-                    long_term_memory=True,
+                    long_term_memory=False,
                     tool_token_limit_before_evict=1000,
                 )
             ],
@@ -538,6 +540,48 @@ class TestFilesystem:
         assert len(response["files"].keys()) == 1
         assert any("large_tool_results" in key for key in response["files"].keys())
 
+    def test_command_with_tool_call(self):
+        agent = create_agent(
+            model=ChatAnthropic(model="claude-sonnet-4-20250514"),
+            tools=[get_premier_league_standings],
+            middleware=[
+                FilesystemMiddleware(
+                    long_term_memory=False,
+                    tool_token_limit_before_evict=1000,
+                )
+            ],
+        )
+        response = agent.invoke(
+            {"messages": [HumanMessage(content="Get the premier league standings using your tool. If the tool returns bad results, tell the user.")]}
+        )
+        assert response["messages"][2].type == "tool"
+        assert len(response["messages"][2].content) < 1000
+        assert len(response["files"].keys()) == 1
+        assert any("large_tool_results" in key for key in response["files"].keys())
+
+    def test_command_with_tool_call_existing_state(self):
+        agent = create_agent(
+            model=ChatAnthropic(model="claude-sonnet-4-20250514"),
+            tools=[get_premier_league_standings],
+            middleware=[
+                FilesystemMiddleware(
+                    long_term_memory=False,
+                    tool_token_limit_before_evict=1000,
+                ),
+                ResearchMiddleware()
+            ],
+        )
+        response = agent.invoke(
+            {
+                "messages": [HumanMessage(content="Get the premier league standings using your tool. If the tool returns bad results, tell the user.")],
+            }
+        )
+        assert response["messages"][2].type == "tool"
+        assert len(response["messages"][2].content) < 1000
+        assert len(response["files"].keys()) == 2
+        assert any("large_tool_results" in key for key in response["files"].keys())
+        assert "/test.txt" in response["files"].keys()
+        assert "research" in response
 
 # Take actions on multiple threads to test longterm memory
 def assert_longterm_mem_tools(agent, store):

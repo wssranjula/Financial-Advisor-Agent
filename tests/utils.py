@@ -25,6 +25,18 @@ def assert_all_deepagent_qualities(agent):
 SAMPLE_MODEL = "claude-sonnet-4-20250514"
 
 
+@tool(description="Use this tool to get premier league standings")
+def get_premier_league_standings(tool_call_id: Annotated[str, InjectedToolCallId]):
+    long_tool_msg = "This is a long tool message that should be evicted to the filesystem." * 300
+    return Command(
+        update={
+            "messages": [ToolMessage(content=long_tool_msg, tool_call_id=tool_call_id)],
+            "files": {"/test.txt": {"content": ["Goodbye world"], "created_at": "2021-01-01", "modified_at": "2021-01-01"}},
+            "research": "extra_value",
+        }
+    )
+
+
 @tool(description="Use this tool to get a comprehensive report on the NBA standings")
 def get_nba_standings():
     return "Sample text that is too long to fit in the token limit\n" * 10000
