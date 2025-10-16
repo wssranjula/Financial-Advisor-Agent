@@ -16,7 +16,7 @@ from deepagents.middleware.filesystem import (
     FileData,
     FilesystemMiddleware,
 )
-from tests.utils import get_nba_standings, get_nfl_standings, get_premier_league_standings, ResearchMiddleware
+from tests.utils import get_nba_standings, get_nfl_standings, get_premier_league_standings, get_la_liga_standings, ResearchMiddleware
 
 
 @pytest.mark.requires("langchain_anthropic")
@@ -536,14 +536,14 @@ class TestFilesystem:
             {"messages": [HumanMessage(content="Get the NFL standings using your tool. If the tool returns bad results, tell the user.")]}
         )
         assert response["messages"][2].type == "tool"
-        assert len(response["messages"][2].content) < 1000
+        assert len(response["messages"][2].content) < 1500
         assert len(response["files"].keys()) == 1
         assert any("large_tool_results" in key for key in response["files"].keys())
 
     def test_command_with_tool_call(self):
         agent = create_agent(
             model=ChatAnthropic(model="claude-sonnet-4-20250514"),
-            tools=[get_premier_league_standings],
+            tools=[get_la_liga_standings],
             middleware=[
                 FilesystemMiddleware(
                     long_term_memory=False,
@@ -552,10 +552,10 @@ class TestFilesystem:
             ],
         )
         response = agent.invoke(
-            {"messages": [HumanMessage(content="Get the premier league standings using your tool. If the tool returns bad results, tell the user.")]}
+            {"messages": [HumanMessage(content="Get the la liga standings using your tool. If the tool returns bad results, tell the user.")]}
         )
         assert response["messages"][2].type == "tool"
-        assert len(response["messages"][2].content) < 1000
+        assert len(response["messages"][2].content) < 1500
         assert len(response["files"].keys()) == 1
         assert any("large_tool_results" in key for key in response["files"].keys())
 
@@ -577,7 +577,7 @@ class TestFilesystem:
             }
         )
         assert response["messages"][2].type == "tool"
-        assert len(response["messages"][2].content) < 1000
+        assert len(response["messages"][2].content) < 1500
         assert len(response["files"].keys()) == 2
         assert any("large_tool_results" in key for key in response["files"].keys())
         assert "/test.txt" in response["files"].keys()

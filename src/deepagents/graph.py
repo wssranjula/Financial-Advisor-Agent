@@ -3,7 +3,7 @@
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from langchain.agents.factory import create_agent
+from langchain.agents.factory import create_agent, ResponseFormat
 from langchain.agents.middleware import HumanInTheLoopMiddleware, InterruptOnConfig, TodoListMiddleware
 from langchain.agents.middleware.summarization import SummarizationMiddleware
 from langchain.agents.middleware.types import AgentMiddleware
@@ -40,6 +40,7 @@ def create_deep_agent(
     system_prompt: str | None = None,
     middleware: Sequence[AgentMiddleware] = (),
     subagents: list[SubAgent | CompiledSubAgent] | None = None,
+    response_format: ResponseFormat | None = None,
     context_schema: type[Any] | None = None,
     checkpointer: Checkpointer | None = None,
     store: BaseStore | None = None,
@@ -71,6 +72,7 @@ def create_deep_agent(
                 - (optional) `model` (either a LanguageModelLike instance or dict
                   settings)
                 - (optional) `middleware` (list of AgentMiddleware)
+        response_format: A structured output response format to use for the agent.
         context_schema: The schema of the deep agent.
         checkpointer: Optional checkpointer for persisting agent state between runs.
         store: Optional store for persisting longterm memories.
@@ -126,6 +128,7 @@ def create_deep_agent(
         system_prompt=system_prompt + "\n\n" + BASE_AGENT_PROMPT if system_prompt else BASE_AGENT_PROMPT,
         tools=tools,
         middleware=deepagent_middleware,
+        response_format=response_format,
         context_schema=context_schema,
         checkpointer=checkpointer,
         store=store,
