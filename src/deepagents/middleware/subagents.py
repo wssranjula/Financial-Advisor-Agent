@@ -1,12 +1,12 @@
 """Middleware for providing subagents to an agent via a `task` tool."""
 
 from collections.abc import Awaitable, Callable, Sequence
-from typing import Annotated, Any, NotRequired, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware, InterruptOnConfig
 from langchain.agents.middleware.types import AgentMiddleware, ModelRequest, ModelResponse
-from langchain.tools import BaseTool, InjectedState, InjectedToolCallId
+from langchain.tools import BaseTool, ToolRuntime
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_core.runnables import Runnable
@@ -327,14 +327,14 @@ def _create_task_tool(
             }
         )
 
-    def _validate_and_prepare_state(subagent_type: str, description: str, state: dict) -> tuple[Runnable, dict]:
+    def _validate_and_prepare_state(subagent_type: str, description: str, runtime: ToolRuntime) -> tuple[Runnable, dict]:
         """Validate subagent type and prepare state for invocation."""
         if subagent_type not in subagent_graphs:
             msg = f"Error: invoked agent of type {subagent_type}, the only allowed types are {[f'`{k}`' for k in subagent_graphs]}"
             raise ValueError(msg)
         subagent = subagent_graphs[subagent_type]
         # Create a new state dict to avoid mutating the original
-        subagent_state = {k: v for k, v in state.items() if k not in _EXCLUDED_STATE_KEYS}
+        subagent_state = {k: v for k, v in runtime.state.items() if k not in _EXCLUDED_STATE_KEYS}
         subagent_state["messages"] = [HumanMessage(content=description)]
         return subagent, subagent_state
 
@@ -348,22 +348,20 @@ def _create_task_tool(
     def task(
         description: str,
         subagent_type: str,
-        state: Annotated[dict, InjectedState],
-        tool_call_id: Annotated[str, InjectedToolCallId],
+        runtime: ToolRuntime,
     ) -> str | Command:
-        subagent, subagent_state = _validate_and_prepare_state(subagent_type, description, state)
+        subagent, subagent_state = _validate_and_prepare_state(subagent_type, description, runtime)
         result = subagent.invoke(subagent_state)
-        return _return_command_with_state_update(result, tool_call_id)
+        return _return_command_with_state_update(result, runtime.tool_call_id)
 
     async def atask(
         description: str,
         subagent_type: str,
-        state: Annotated[dict, InjectedState],
-        tool_call_id: Annotated[str, InjectedToolCallId],
+        runtime: ToolRuntime,
     ) -> str | Command:
-        subagent, subagent_state = _validate_and_prepare_state(subagent_type, description, state)
+        subagent, subagent_state = _validate_and_prepare_state(subagent_type, description, runtime)
         result = await subagent.ainvoke(subagent_state)
-        return _return_command_with_state_update(result, tool_call_id)
+        return _return_command_with_state_update(result, runtime.tool_call_id)
 
     return StructuredTool.from_function(
         name="task",

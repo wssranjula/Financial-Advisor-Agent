@@ -1,9 +1,8 @@
-from typing import Annotated
 
 from langchain.agents.middleware import AgentMiddleware, AgentState
-from langchain.tools.tool_node import InjectedState
+from langchain.tools import ToolRuntime
 from langchain_core.messages import ToolMessage
-from langchain_core.tools import InjectedToolCallId, tool
+from langchain_core.tools import tool
 from langgraph.types import Command
 
 
@@ -26,11 +25,11 @@ SAMPLE_MODEL = "claude-sonnet-4-20250514"
 
 
 @tool(description="Use this tool to get premier league standings")
-def get_premier_league_standings(tool_call_id: Annotated[str, InjectedToolCallId]):
+def get_premier_league_standings(runtime: ToolRuntime):
     long_tool_msg = "This is a long tool message that should be evicted to the filesystem.\n" * 300
     return Command(
         update={
-            "messages": [ToolMessage(content=long_tool_msg, tool_call_id=tool_call_id)],
+            "messages": [ToolMessage(content=long_tool_msg, tool_call_id=runtime.tool_call_id)],
             "files": {"/test.txt": {"content": ["Goodbye world"], "created_at": "2021-01-01", "modified_at": "2021-01-01"}},
             "research": "extra_value",
         }
@@ -38,11 +37,11 @@ def get_premier_league_standings(tool_call_id: Annotated[str, InjectedToolCallId
 
 
 @tool(description="Use this tool to get la liga standings")
-def get_la_liga_standings(tool_call_id: Annotated[str, InjectedToolCallId]):
+def get_la_liga_standings(runtime: ToolRuntime):
     long_tool_msg = "This is a long tool message that should be evicted to the filesystem.\n" * 300
     return Command(
         update={
-            "messages": [ToolMessage(content=long_tool_msg, tool_call_id=tool_call_id)],
+            "messages": [ToolMessage(content=long_tool_msg, tool_call_id=runtime.tool_call_id)],
         }
     )
 
@@ -73,18 +72,18 @@ def sample_tool(sample_input: str):
 
 
 @tool(description="Sample tool with injected state")
-def sample_tool_with_injected_state(sample_input: str, state: Annotated[dict, InjectedState]):
-    return sample_input + state["sample_input"]
+def sample_tool_with_injected_state(sample_input: str, runtime: ToolRuntime):
+    return sample_input + runtime.state["sample_input"]
 
 
 TOY_BASKETBALL_RESEARCH = "Lebron James is the best basketball player of all time with over 40k points and 21 seasons in the NBA."
 
 
 @tool(description="Use this tool to conduct research into basketball and save it to state")
-def research_basketball(topic: str, state: Annotated[dict, InjectedState], tool_call_id: Annotated[str, InjectedToolCallId]):
-    current_research = state.get("research", "")
+def research_basketball(topic: str, runtime: ToolRuntime):
+    current_research = runtime.state.get("research", "")
     research = f"{current_research}\n\nResearching on {topic}... Done! {TOY_BASKETBALL_RESEARCH}"
-    return Command(update={"research": research, "messages": [ToolMessage(research, tool_call_id=tool_call_id)]})
+    return Command(update={"research": research, "messages": [ToolMessage(research, tool_call_id=runtime.tool_call_id)]})
 
 
 class ResearchState(AgentState):
