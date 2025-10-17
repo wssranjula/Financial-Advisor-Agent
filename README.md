@@ -1,8 +1,8 @@
 # 🧠🤖Deep Agents
 
-Using an LLM to call tools in a loop is the simplest form of an agent. 
-This architecture, however, can yield agents that are “shallow” and fail to plan and act over longer, more complex tasks. 
-Applications like “Deep Research”, "Manus", and “Claude Code” have gotten around this limitation by implementing a combination of four things:
+Using an LLM to call tools in a loop is the simplest form of an agent.
+This architecture, however, can yield agents that are "shallow" and fail to plan and act over longer, more complex tasks.
+Applications like "Deep Research", "Manus", and "Claude Code" have gotten around this limitation by implementing a combination of four things:
 a **planning tool**, **sub agents**, access to a **file system**, and a **detailed prompt**.
 
 <img src="deep_agents.png" alt="deep agent" width="600"/>
@@ -10,6 +10,65 @@ a **planning tool**, **sub agents**, access to a **file system**, and a **detail
 `deepagents` is a Python package that implements these in a general purpose way so that you can easily create a Deep Agent for your application.
 
 **Acknowledgements: This project was primarily inspired by Claude Code, and initially was largely an attempt to see what made Claude Code general purpose, and make it even more so.**
+
+---
+
+## 🎯 Example Application: Financial Advisor AI Agent
+
+This repository includes a comprehensive example application built with DeepAgents: an **AI-powered assistant for Financial Advisors** that integrates with Gmail, Google Calendar, and HubSpot CRM.
+
+### Problem Statement
+
+Financial advisors juggle multiple communication channels and client management tasks daily:
+- Managing email conversations with dozens of clients
+- Scheduling and tracking meetings
+- Maintaining client records in CRM systems
+- Remembering personal details from conversations (e.g., "Which client mentioned their kid plays baseball?")
+- Following up on action items from emails and meetings
+
+These tasks are time-consuming and require constant context-switching between tools, leading to inefficiencies and potential missed opportunities.
+
+### Solution Approach
+
+Using the DeepAgents framework, we've built an intelligent assistant that:
+
+1. **Unified Interface**: ChatGPT-like chat interface for all client-related queries and tasks
+2. **Intelligent Context Retrieval (RAG)**: Answers questions by searching across emails and CRM data using semantic search with pgvector
+3. **Multi-Step Task Execution**: Handles complex workflows like "Schedule a meeting with Sara Smith" by:
+   - Finding client info in HubSpot/emails
+   - Checking calendar availability
+   - Sending emails with proposed times
+   - Waiting for responses and taking appropriate follow-up actions
+4. **Proactive Automation**: Executes ongoing instructions like:
+   - "When someone new emails me, create them in HubSpot"
+   - "When I add a calendar event, email the attendees"
+5. **Specialized Subagents**: Dedicated agents for email research, calendar scheduling, and CRM management
+
+### Key Features
+
+- OAuth integration with Gmail, Google Calendar, and HubSpot
+- RAG-powered semantic search across all communications and CRM data
+- Task persistence for multi-step workflows that require waiting for responses
+- Memory system for ongoing user instructions
+- Responsive chat UI matching modern design patterns
+- Polling-based event monitoring for proactive actions
+
+### Documentation
+
+- [MVP Implementation Plan](./docs/MVP_PLAN.md) - Detailed roadmap for building the MVP (12-day plan)
+- [Full Implementation Guide](./docs/FULL_IMPLEMENTATION.md) - Complete system architecture and advanced features
+- [Setup Guide](./docs/SETUP_GUIDE.md) - Step-by-step manual setup instructions (OAuth, database, hosting)
+
+### Quick Start
+
+See the [Setup Guide](./docs/SETUP_GUIDE.md) for detailed instructions on:
+- Creating OAuth apps in Google Cloud Console and HubSpot
+- Setting up PostgreSQL with pgvector
+- Configuring environment variables
+- Running the application locally
+- Deploying to production
+
+---
 
 ## Installation
 
