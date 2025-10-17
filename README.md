@@ -105,15 +105,12 @@ There are several parameters you can pass to `create_deep_agent` to create your 
 
 By default, `deepagents` uses `"claude-sonnet-4-5-20250929"`. You can customize this by passing any [LangChain model object](https://python.langchain.com/docs/integrations/chat/).
 
-Here's how to use a custom model (like OpenAI's `gpt-oss` model via Ollama):
-
-(Requires `pip install langchain` and then `pip install langchain-ollama` for Ollama models)
-
 ```python
+from langchain.chat_models import init_chat_model
 from deepagents import create_deep_agent
 
 model = init_chat_model(
-    model="ollama:gpt-oss:20b",  
+    model="openai:gpt-5",  
 )
 agent = create_deep_agent(
     model=model,
@@ -127,13 +124,14 @@ Claude Code's system prompt. It was made more general purpose than Claude Code's
 Each deep agent tailored to a use case should include a custom system prompt specific to that use case as well. The importance of prompting for creating a successful deep agent cannot be overstated.
 
 ```python
+from deepagents import create_deep_agent
+
 research_instructions = """You are an expert researcher. Your job is to conduct thorough research, and then write a polished report.
 """
 
 agent = create_deep_agent(
     system_prompt=research_instructions,
 )
-
 ```
 
 ### `tools`
@@ -141,6 +139,13 @@ agent = create_deep_agent(
 Just like with tool-calling agents, you can provide a deep agent with a set of tools that it has access to.
 
 ```python
+import os
+from typing import Literal
+from tavily import TavilyClient
+from deepagents import create_deep_agent
+
+tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
+
 def internet_search(
     query: str,
     max_results: int = 5,
@@ -164,6 +169,10 @@ agent = create_deep_agent(
 `create_deep_agent` is implemented with middleware that can be customized. You can provide additional middleware to extend functionality, add tools, or implement custom hooks. 
 
 ```python
+from langchain_core.tools import tool
+from deepagents import create_deep_agent
+from langchain.agents.middleware import AgentMiddleware
+
 @tool
 def get_weather(city: str) -> str:
     """Get the weather in a city."""
@@ -222,12 +231,31 @@ class CompiledSubAgent(TypedDict):
 #### Using SubAgent
 
 ```python
+import os
+from typing import Literal
+from tavily import TavilyClient
 from deepagents import create_deep_agent
+
+tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
+
+def internet_search(
+    query: str,
+    max_results: int = 5,
+    topic: Literal["general", "news", "finance"] = "general",
+    include_raw_content: bool = False,
+):
+    """Run a web search"""
+    return tavily_client.search(
+        query,
+        max_results=max_results,
+        include_raw_content=include_raw_content,
+        topic=topic,
+    )
 
 research_subagent = {
     "name": "research-agent",
     "description": "Used to research more in depth questions",
-    "system_prompt": sub_research_prompt,
+    "system_prompt": "You are a great researcher",
     "tools": [internet_search],
     "model": "openai:gpt-4o",  # Optional override, defaults to main agent model
 }
@@ -290,6 +318,9 @@ A common reality for agents is that some tool operations may be sensitive and re
 These tool configs are passed to our prebuilt [HITL middleware](https://docs.langchain.com/oss/python/langchain/middleware#human-in-the-loop) so that the agent pauses execution and waits for feedback from the user before executing configured tools.
 
 ```python
+from langchain_core.tools import tool
+from deepagents import create_deep_agent
+
 @tool
 def get_weather(city: str) -> str:
     """Get the weather in a city."""
@@ -378,6 +409,11 @@ Handing off tasks to subagents is a great way to isolate context, keeping the co
 A subagent is defined with a name, description, system prompt, and tools. You can also provide a subagent with a custom model, or with additional middleware. This can be particularly useful when you want to give the subagent an additional state key to share with the main agent.
 
 ```python
+from langchain_core.tools import tool
+from langchain.agents import create_agent
+from deepagents.middleware.subagents import SubAgentMiddleware
+
+
 @tool
 def get_weather(city: str) -> str:
     """Get the weather in a city."""
