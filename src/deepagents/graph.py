@@ -9,6 +9,7 @@ from langchain.agents.middleware.summarization import SummarizationMiddleware
 from langchain.agents.middleware.types import AgentMiddleware
 from langchain.agents.structured_output import ResponseFormat
 from langchain_anthropic import ChatAnthropic
+from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
 from langgraph.cache.base import BaseCache
@@ -110,6 +111,7 @@ def create_deep_agent(
                     max_tokens_before_summary=120000,
                     messages_to_keep=20,
                 ),
+                AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
             ],
             default_interrupt_on=interrupt_on,
             general_purpose_agent=True,
@@ -119,6 +121,7 @@ def create_deep_agent(
             max_tokens_before_summary=120000,
             messages_to_keep=20,
         ),
+        AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
     ]
     if interrupt_on is not None:
         deepagent_middleware.append(HumanInTheLoopMiddleware(interrupt_on=interrupt_on))
