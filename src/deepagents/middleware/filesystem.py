@@ -17,11 +17,12 @@ from langchain.agents.middleware.types import (
     ModelRequest,
     ModelResponse,
 )
-from langchain.tools.tool_node import InjectedState, ToolCallRequest
+from langchain.tools import ToolRuntime
+from langchain.tools.tool_node import ToolCallRequest
 from langchain_core.messages import ToolMessage
-from langchain_core.tools import BaseTool, InjectedToolCallId, tool
+from langchain_core.tools import BaseTool, tool
 from langgraph.config import get_config
-from langgraph.runtime import Runtime, get_runtime
+from langgraph.runtime import Runtime
 from langgraph.store.base import BaseStore, Item
 from langgraph.types import Command
 from typing_extensions import TypedDict
@@ -569,10 +570,9 @@ def _ls_tool_generator(custom_description: str | None = None, *, long_term_memor
     if long_term_memory:
 
         @tool(description=tool_description)
-        def ls(state: Annotated[FilesystemState, InjectedState], path: str | None = None) -> list[str]:
-            files = _get_filenames_from_state(state)
+        def ls(runtime: ToolRuntime[None, FilesystemState], path: str | None = None) -> list[str]:
+            files = _get_filenames_from_state(runtime.state)
             # Add filenames from longterm memory
-            runtime = get_runtime()
             store = _get_store(runtime)
             namespace = _get_namespace()
             longterm_files = store.search(namespace)
@@ -582,8 +582,8 @@ def _ls_tool_generator(custom_description: str | None = None, *, long_term_memor
     else:
 
         @tool(description=tool_description)
-        def ls(state: Annotated[FilesystemState, InjectedState], path: str | None = None) -> list[str]:
-            files = _get_filenames_from_state(state)
+        def ls(runtime: ToolRuntime[None, FilesystemState], path: str | None = None) -> list[str]:
+            files = _get_filenames_from_state(runtime.state)
             return _filter_files_by_path(files, path)
 
     return ls
@@ -633,14 +633,13 @@ def _read_file_tool_generator(custom_description: str | None = None, *, long_ter
         @tool(description=tool_description)
         def read_file(
             file_path: str,
-            state: Annotated[FilesystemState, InjectedState],
+            runtime: ToolRuntime[None, FilesystemState],
             offset: int = DEFAULT_READ_OFFSET,
             limit: int = DEFAULT_READ_LIMIT,
         ) -> str:
             file_path = _validate_path(file_path)
             if _has_memories_prefix(file_path):
                 stripped_file_path = _strip_memories_prefix(file_path)
-                runtime = get_runtime()
                 store = _get_store(runtime)
                 namespace = _get_namespace()
                 item: Item | None = store.get(namespace, stripped_file_path)
@@ -649,7 +648,7 @@ def _read_file_tool_generator(custom_description: str | None = None, *, long_ter
                 file_data = _convert_store_item_to_file_data(item)
             else:
                 try:
-                    file_data = _get_file_data_from_state(state, file_path)
+                    file_data = _get_file_data_from_state(runtime.state, file_path)
                 except ValueError as e:
                     return str(e)
             return _read_file_data_content(file_data, offset, limit)
@@ -659,13 +658,13 @@ def _read_file_tool_generator(custom_description: str | None = None, *, long_ter
         @tool(description=tool_description)
         def read_file(
             file_path: str,
-            state: Annotated[FilesystemState, InjectedState],
+            runtime: ToolRuntime[None, FilesystemState],
             offset: int = DEFAULT_READ_OFFSET,
             limit: int = DEFAULT_READ_LIMIT,
         ) -> str:
             file_path = _validate_path(file_path)
             try:
-                file_data = _get_file_data_from_state(state, file_path)
+                file_data = _get_file_data_from_state(runtime.state, file_path)
             except ValueError as e:
                 return str(e)
             return _read_file_data_content(file_data, offset, limit)
@@ -719,13 +718,11 @@ def _write_file_tool_generator(custom_description: str | None = None, *, long_te
         def write_file(
             file_path: str,
             content: str,
-            state: Annotated[FilesystemState, InjectedState],
-            tool_call_id: Annotated[str, InjectedToolCallId],
+            runtime: ToolRuntime[None, FilesystemState],
         ) -> Command | str:
             file_path = _validate_path(file_path)
             if _has_memories_prefix(file_path):
                 stripped_file_path = _strip_memories_prefix(file_path)
-                runtime = get_runtime()
                 store = _get_store(runtime)
                 namespace = _get_namespace()
                 if store.get(namespace, stripped_file_path) is not None:
@@ -733,7 +730,7 @@ def _write_file_tool_generator(custom_description: str | None = None, *, long_te
                 new_file_data = _create_file_data(content)
                 store.put(namespace, stripped_file_path, _convert_file_data_to_store_item(new_file_data))
                 return f"Updated longterm memories file {file_path}"
-            return _write_file_to_state(state, tool_call_id, file_path, content)
+            return _write_file_to_state(runtime.state, runtime.tool_call_id, file_path, content)
 
     else:
 
@@ -741,11 +738,10 @@ def _write_file_tool_generator(custom_description: str | None = None, *, long_te
         def write_file(
             file_path: str,
             content: str,
-            state: Annotated[FilesystemState, InjectedState],
-            tool_call_id: Annotated[str, InjectedToolCallId],
+            runtime: ToolRuntime[None, FilesystemState],
         ) -> Command | str:
             file_path = _validate_path(file_path)
-            return _write_file_to_state(state, tool_call_id, file_path, content)
+            return _write_file_to_state(runtime.state, runtime.tool_call_id, file_path, content)
 
     return write_file
 
@@ -803,8 +799,7 @@ def _edit_file_tool_generator(custom_description: str | None = None, *, long_ter
             file_path: str,
             old_string: str,
             new_string: str,
-            state: Annotated[FilesystemState, InjectedState],
-            tool_call_id: Annotated[str, InjectedToolCallId],
+            runtime: ToolRuntime[None, FilesystemState],
             *,
             replace_all: bool = False,
         ) -> Command | str:
@@ -814,7 +809,6 @@ def _edit_file_tool_generator(custom_description: str | None = None, *, long_ter
             # Retrieve file data from appropriate storage
             if is_longterm_memory:
                 stripped_file_path = _strip_memories_prefix(file_path)
-                runtime = get_runtime()
                 store = _get_store(runtime)
                 namespace = _get_namespace()
                 item: Item | None = store.get(namespace, stripped_file_path)
@@ -823,7 +817,7 @@ def _edit_file_tool_generator(custom_description: str | None = None, *, long_ter
                 file_data = _convert_store_item_to_file_data(item)
             else:
                 try:
-                    file_data = _get_file_data_from_state(state, file_path)
+                    file_data = _get_file_data_from_state(runtime.state, file_path)
                 except ValueError as e:
                     return str(e)
 
@@ -843,7 +837,7 @@ def _edit_file_tool_generator(custom_description: str | None = None, *, long_ter
             return Command(
                 update={
                     "files": {file_path: new_file_data},
-                    "messages": [ToolMessage(full_msg, tool_call_id=tool_call_id)],
+                    "messages": [ToolMessage(full_msg, tool_call_id=runtime.tool_call_id)],
                 }
             )
     else:
@@ -853,8 +847,7 @@ def _edit_file_tool_generator(custom_description: str | None = None, *, long_ter
             file_path: str,
             old_string: str,
             new_string: str,
-            state: Annotated[FilesystemState, InjectedState],
-            tool_call_id: Annotated[str, InjectedToolCallId],
+            runtime: ToolRuntime[None, FilesystemState],
             *,
             replace_all: bool = False,
         ) -> Command | str:
@@ -862,7 +855,7 @@ def _edit_file_tool_generator(custom_description: str | None = None, *, long_ter
 
             # Retrieve file data from state
             try:
-                file_data = _get_file_data_from_state(state, file_path)
+                file_data = _get_file_data_from_state(runtime.state, file_path)
             except ValueError as e:
                 return str(e)
 
@@ -877,7 +870,7 @@ def _edit_file_tool_generator(custom_description: str | None = None, *, long_ter
             return Command(
                 update={
                     "files": {file_path: new_file_data},
-                    "messages": [ToolMessage(full_msg, tool_call_id=tool_call_id)],
+                    "messages": [ToolMessage(full_msg, tool_call_id=runtime.tool_call_id)],
                 }
             )
 

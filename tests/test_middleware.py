@@ -1,5 +1,6 @@
 import pytest
 from langchain.agents import create_agent
+from langchain.tools import ToolRuntime
 
 from deepagents.middleware.filesystem import (
     FILESYSTEM_SYSTEM_PROMPT,
@@ -96,7 +97,9 @@ class TestFilesystemMiddleware:
         )
         middleware = FilesystemMiddleware(long_term_memory=False)
         ls_tool = next(tool for tool in middleware.tools if tool.name == "ls")
-        result = ls_tool.invoke({"state": state})
+        result = ls_tool.invoke(
+            {"runtime": ToolRuntime(state=state, context=None, tool_call_id="", store=None, stream_writer=lambda _: None, config={})}
+        )
         assert result == ["test.txt", "test2.txt"]
 
     def test_ls_shortterm_with_path(self):
@@ -127,7 +130,12 @@ class TestFilesystemMiddleware:
         )
         middleware = FilesystemMiddleware(long_term_memory=False)
         ls_tool = next(tool for tool in middleware.tools if tool.name == "ls")
-        result = ls_tool.invoke({"state": state, "path": "pokemon/"})
+        result = ls_tool.invoke(
+            {
+                "path": "pokemon/",
+                "runtime": ToolRuntime(state=state, context=None, tool_call_id="", store=None, stream_writer=lambda _: None, config={}),
+            }
+        )
         assert "/pokemon/test2.txt" in result
         assert "/pokemon/charmander.txt" in result
 
