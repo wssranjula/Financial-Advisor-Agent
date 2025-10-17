@@ -30,7 +30,7 @@ def get_default_model() -> ChatAnthropic:
         ChatAnthropic instance configured with Claude Sonnet 4.
     """
     return ChatAnthropic(
-        model_name="claude-sonnet-4-20250514",
+        model_name="claude-sonnet-4-5-20250929",
         max_tokens=64000,
     )
 
