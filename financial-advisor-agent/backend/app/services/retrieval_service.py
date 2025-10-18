@@ -98,7 +98,7 @@ class RetrievalService:
                 documents.append({
                     'id': str(row.id),
                     'content': row.content,
-                    'metadata': row.metadata,
+                    'metadata': row.doc_metadata,
                     'source_type': row.source_type,
                     'source_id': row.source_id,
                     'created_at': row.created_at.isoformat(),
@@ -308,7 +308,7 @@ class RetrievalService:
             return {
                 'id': str(doc.id),
                 'content': doc.content,
-                'metadata': doc.metadata,
+                'metadata': doc.doc_metadata,
                 'source_type': doc.source_type,
                 'source_id': doc.source_id,
                 'created_at': doc.created_at.isoformat()

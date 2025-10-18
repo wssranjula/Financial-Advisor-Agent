@@ -20,7 +20,7 @@ class DocumentEmbedding(Base):
     content = Column(Text, nullable=False)
     embedding = Column(Vector(1536), nullable=False)  # OpenAI text-embedding-3-small dimension
 
-    metadata = Column(JSON, nullable=False, default=dict)
+    doc_metadata = Column(JSON, nullable=False, default=dict)
     source_type = Column(String(50), nullable=False, index=True)  # 'email', 'hubspot', 'calendar'
     source_id = Column(String(255), nullable=False)  # Original ID from source system
 

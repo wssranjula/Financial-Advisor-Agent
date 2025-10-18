@@ -4,7 +4,7 @@ Security utilities for encryption and token management
 import json
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 from app.config import settings
 
@@ -14,7 +14,7 @@ class EncryptionService:
 
     def __init__(self):
         # Derive encryption key from master key
-        kdf = PBKDF2(
+        kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=b'financial_advisor_agent_salt',  # In production, use per-user salt

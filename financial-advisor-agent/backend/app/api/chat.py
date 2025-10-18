@@ -167,7 +167,7 @@ async def stream_agent_response(
 
         # Update message metadata with tool calls
         if tool_calls_list:
-            assistant_msg.metadata = {"tool_calls": tool_calls_list}
+            assistant_msg.message_metadata = {"tool_calls": tool_calls_list}
             await db.commit()
 
         # Send completion event
@@ -278,7 +278,7 @@ async def send_message(
 
         # Update metadata
         if tool_calls:
-            assistant_msg.metadata = {"tool_calls": tool_calls}
+            assistant_msg.message_metadata = {"tool_calls": tool_calls}
             await db.commit()
 
         return ChatResponse(
@@ -350,7 +350,7 @@ async def get_conversation_messages(
             "role": msg.role,
             "content": msg.content,
             "created_at": msg.created_at.isoformat(),
-            "metadata": msg.metadata,
+            "metadata": msg.message_metadata,
         }
         for msg in messages
     ]

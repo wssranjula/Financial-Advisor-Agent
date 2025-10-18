@@ -18,7 +18,7 @@ class Message(Base):
     conversation_id = Column(UUID(as_uuid=True), ForeignKey('conversations.id', ondelete='CASCADE'), nullable=False)
     role = Column(String(50), nullable=False)  # 'user', 'assistant', 'system'
     content = Column(Text, nullable=False)
-    metadata = Column(JSON, nullable=True)  # Store additional data like tool calls, sources, etc.
+    message_metadata = Column(JSON, nullable=True)  # Store additional data like tool calls, sources, etc.
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

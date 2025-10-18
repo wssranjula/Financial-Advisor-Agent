@@ -6,7 +6,8 @@
       "Bash(py -3.12 -m venv venv)",
       "Bash(venv/Scripts/python --version)",
       "Bash(venv/Scripts/python -m pip install --upgrade pip)",
-      "Bash(venv/Scripts/pip install -r requirements.txt)"
+      "Bash(venv/Scripts/pip install -r requirements.txt)",
+      "Bash(venv/Scripts/python -c \"import fastapi, langchain, deepagents, sqlalchemy; print(''FastAPI:'', fastapi.__version__); print(''LangChain:'', langchain.__version__); print(''SQLAlchemy:'', sqlalchemy.__version__); print(''\\nAll packages imported successfully!'')\")"
     ],
     "deny": [],
     "ask": []

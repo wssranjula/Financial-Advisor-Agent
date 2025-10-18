@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "Financial Advisor AI Agent"
     APP_ENV: str = "development"
+    ENVIRONMENT: str = "development"
     DEBUG: bool = True
     SECRET_KEY: str
 
@@ -26,6 +27,7 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str
 
     # HubSpot OAuth
+    HUBSPOT_APP_ID: str
     HUBSPOT_CLIENT_ID: str
     HUBSPOT_CLIENT_SECRET: str
     HUBSPOT_REDIRECT_URI: str

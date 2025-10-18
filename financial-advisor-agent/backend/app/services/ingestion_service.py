@@ -150,7 +150,7 @@ class IngestionService:
                         user_id=user.id,
                         content=email_item['text'],
                         embedding=embedding,
-                        metadata=email_item['metadata'],
+                        doc_metadata=email_item['metadata'],
                         source_type='email',
                         source_id=email_item['message_id']
                     )
@@ -336,7 +336,7 @@ class IngestionService:
                         user_id=user.id,
                         content=item['text'],
                         embedding=embedding,
-                        metadata=item['metadata'],
+                        doc_metadata=item['metadata'],
                         source_type=item['source_type'],
                         source_id=item['source_id']
                     )
