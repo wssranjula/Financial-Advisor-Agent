@@ -1,4 +1,4 @@
-import { Message } from '@/lib/types'
+import { Message } from '../lib/types'
 import ReactMarkdown from 'react-markdown'
 import CalendarEventCard from './CalendarEventCard'
 import ContactCard from './ContactCard'

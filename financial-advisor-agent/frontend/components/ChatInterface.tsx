@@ -1,6 +1,6 @@
 'use client'
 
-import { useChat } from '@/lib/useChat'
+import { useChat } from '../lib/useChat'
 import MessageList from './MessageList'
 import InputArea from './InputArea'
 
