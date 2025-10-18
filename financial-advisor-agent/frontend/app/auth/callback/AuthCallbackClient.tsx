@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useAuth } from '../../../contexts/AuthContext'
 
 export default function AuthCallbackClient() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { login } = useAuth()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('Processing authentication...')
 
@@ -28,8 +30,8 @@ export default function AuthCallbackClient() {
         setStatus('success')
         setMessage(`Welcome, ${email}! Redirecting to chat...`)
 
-        // Store user info in localStorage
-        localStorage.setItem('user', JSON.stringify({ email }))
+        // Use auth context to login
+        login({ email })
 
         // Redirect to chat
         setTimeout(() => router.push('/'), 1500)
@@ -41,7 +43,7 @@ export default function AuthCallbackClient() {
     }
 
     handleCallback()
-  }, [searchParams, router])
+  }, [searchParams, router, login])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">

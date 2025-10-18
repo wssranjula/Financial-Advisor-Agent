@@ -65,9 +65,16 @@ See **[QUICK_START.md](QUICK_START.md)** for detailed setup instructions.
 
 ## 📚 Documentation
 
+### Local Development
 - **[QUICK_START.md](QUICK_START.md)** - Get running in 10 minutes
 - **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Comprehensive testing guide
 - **[CLAUDE.md](CLAUDE.md)** - Development documentation
+
+### Deployment
+- **[QUICK_START_DEPLOYMENT.md](QUICK_START_DEPLOYMENT.md)** - Deploy to production in 3 steps ⭐ START HERE
+- **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Verify your deployment
+- **[DEPLOYMENT_CONFIG.md](DEPLOYMENT_CONFIG.md)** - Complete deployment guide
+- **[DEPLOYMENT_FIXES_SUMMARY.md](DEPLOYMENT_FIXES_SUMMARY.md)** - Technical details of deployment fixes
 
 ## 🏗️ Architecture
 
