@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "Bash(for dir in app/models app/api app/integrations app/agents app/agents/tools app/agents/subagents app/rag app/services app/schemas)",
+      "Bash(do touch $dir/__init__.py)",
+      "Bash(done)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(python -m venv:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(cat:*)",
+      "Bash(python:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

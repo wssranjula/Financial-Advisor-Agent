@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir venv)",
+      "Bash(rm -rf venv)",
+      "Bash(py -3.12 -m venv venv)",
+      "Bash(venv/Scripts/python --version)",
+      "Bash(venv/Scripts/python -m pip install --upgrade pip)",
+      "Bash(venv/Scripts/pip install -r requirements.txt)",
+      "Bash(venv/Scripts/python -c \"import fastapi, langchain, deepagents, sqlalchemy; print(''FastAPI:'', fastapi.__version__); print(''LangChain:'', langchain.__version__); print(''SQLAlchemy:'', sqlalchemy.__version__); print(''\\nAll packages imported successfully!'')\")",
+      "Bash(venv/Scripts/python -c \"from app.main import app; print(''App imports successfully'')\")",
+      "Bash(venv/Scripts/python init_db.py)",
+      "Read(//c/Users/Admin/Desktop/Suresh/deepagents/financial-advisor-agent/frontend/components/**)",
+      "Bash(venv/Scripts/python -c \"from app.main import app; print(''Backend ready to run!'')\")",
+      "Bash(venv/Scripts/python -c \"from app.main import app; print(''Backend imports successfully'')\")",
+      "Bash(venv/Scripts/python -c \"from deepagents import create_deep_agent; import inspect; print(inspect.signature(create_deep_agent))\")",
+      "Bash(venv/Scripts/python -c \"from deepagents.middleware.subagents import SubAgent; import inspect; print(inspect.signature(SubAgent.__init__))\")",
+      "Bash(venv/Scripts/python -c \"from deepagents.middleware.subagents import SubAgent; print([attr for attr in dir(SubAgent) if not attr.startswith(''_'')])\")",
+      "Bash(venv/Scripts/python -c \"from deepagents.middleware.subagents import SubAgent; print(SubAgent.__annotations__)\")",
+      "Read(//c/Users/Admin/Desktop/Suresh/deepagents/financial-advisor-agent/frontend/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
