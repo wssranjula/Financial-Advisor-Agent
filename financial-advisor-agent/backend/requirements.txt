@@ -1,25 +1,25 @@
 # Core Framework
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-pydantic==2.5.3
-pydantic-settings==2.1.0
-python-dotenv==1.0.0
-python-multipart==0.0.6
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.7.4
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
 
 # Database
 sqlalchemy==2.0.25
-psycopg2-binary==2.9.9
+psycopg2-binary>=2.9.10
 pgvector==0.2.4
 alembic==1.13.1
 asyncpg==0.29.0
 
 # DeepAgents & LangChain
 deepagents==0.1.0
-langchain==0.1.0
-langchain-anthropic==0.1.0
-langchain-openai==0.0.5
-langgraph==0.0.20
-langchain-core==0.1.0
+langchain>=0.1.0
+langchain-anthropic>=1.0.0
+langchain-openai>=0.0.5
+langgraph>=0.0.20
+langchain-core>=0.1.0
 
 # Google APIs
 google-auth==2.27.0

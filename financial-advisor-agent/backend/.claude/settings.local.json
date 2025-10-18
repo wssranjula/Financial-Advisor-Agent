@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir venv)",
+      "Bash(rm -rf venv)",
+      "Bash(py -3.12 -m venv venv)",
+      "Bash(venv/Scripts/python --version)",
+      "Bash(venv/Scripts/python -m pip install --upgrade pip)",
+      "Bash(venv/Scripts/pip install -r requirements.txt)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
