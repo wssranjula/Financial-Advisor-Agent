@@ -6,7 +6,7 @@ import InputArea from './InputArea'
 
 export default function ChatInterface() {
   const { messages, isLoading, error, sendMessage, clearError } = useChat({
-    apiUrl: '/api/chat',
+    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/chat',
     onError: (err) => {
       console.error('Chat error:', err)
     },

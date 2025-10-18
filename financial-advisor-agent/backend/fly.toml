@@ -1,0 +1,38 @@
+app = "financial-advisor-backend"
+
+[build]
+  image = ""
+
+[env]
+  PORT = "8000"
+
+[experimental]
+  allowed_public_ports = []
+
+[[services]]
+  internal_port = 8000
+  protocol = "tcp"
+  processes = ["app"]
+
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls"]
+    port = 443
+
+  [[services.tcp_checks]]
+    interval = 10000
+    timeout = 2000
+    grace_period = "1s"
+    port = 8000
+
+# Example volumes (recommended for persistent stores like pgvector snapshots)
+[[mounts]]
+  source = "data"
+  destination = "/data"

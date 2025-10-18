@@ -16,7 +16,8 @@
       "Bash(venv/Scripts/python -c \"from deepagents import create_deep_agent; import inspect; print(inspect.signature(create_deep_agent))\")",
       "Bash(venv/Scripts/python -c \"from deepagents.middleware.subagents import SubAgent; import inspect; print(inspect.signature(SubAgent.__init__))\")",
       "Bash(venv/Scripts/python -c \"from deepagents.middleware.subagents import SubAgent; print([attr for attr in dir(SubAgent) if not attr.startswith(''_'')])\")",
-      "Bash(venv/Scripts/python -c \"from deepagents.middleware.subagents import SubAgent; print(SubAgent.__annotations__)\")"
+      "Bash(venv/Scripts/python -c \"from deepagents.middleware.subagents import SubAgent; print(SubAgent.__annotations__)\")",
+      "Read(//c/Users/Admin/Desktop/Suresh/deepagents/financial-advisor-agent/frontend/**)"
     ],
     "deny": [],
     "ask": []
