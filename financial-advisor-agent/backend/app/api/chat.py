@@ -4,11 +4,10 @@ Chat API endpoints with streaming support via Server-Sent Events (SSE).
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional, AsyncGenerator
+from typing import Optional, Generator
 import json
-import asyncio
 from datetime import datetime
 
 from app.database import get_db
@@ -40,16 +39,14 @@ class ChatResponse(BaseModel):
     sources: Optional[list] = None
 
 
-async def get_or_create_conversation(
-    db: AsyncSession, user: Optional[User], conversation_id: Optional[str] = None
+def get_or_create_conversation(
+    db: Session, user: Optional[User], conversation_id: Optional[str] = None
 ) -> Conversation:
     """Get existing conversation or create a new one."""
 
-    # For testing without auth, create a temporary user
+    # For testing without auth, use first user or create one
     if not user:
-        from sqlalchemy import select
-        result = await db.execute(select(User).limit(1))
-        user = result.scalar_one_or_none()
+        user = db.query(User).first()
 
         if not user:
             # Create a test user if none exists
@@ -59,12 +56,12 @@ async def get_or_create_conversation(
                 is_active=True
             )
             db.add(user)
-            await db.commit()
-            await db.refresh(user)
+            db.commit()
+            db.refresh(user)
 
     if conversation_id:
         # Try to get existing conversation
-        conversation = await db.get(Conversation, conversation_id)
+        conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
         if conversation and conversation.user_id == user.id:
             return conversation
 
@@ -74,14 +71,14 @@ async def get_or_create_conversation(
         title=f"Conversation {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
     )
     db.add(conversation)
-    await db.commit()
-    await db.refresh(conversation)
+    db.commit()
+    db.refresh(conversation)
 
     return conversation
 
 
-async def save_message(
-    db: AsyncSession, conversation: Conversation, role: str, content: str
+def save_message(
+    db: Session, conversation: Conversation, role: str, content: str
 ) -> MessageModel:
     """Save a message to the database."""
 
@@ -91,15 +88,15 @@ async def save_message(
         content=content,
     )
     db.add(message)
-    await db.commit()
-    await db.refresh(message)
+    db.commit()
+    db.refresh(message)
 
     return message
 
 
-async def stream_agent_response(
-    user_message: str, user: User, conversation_id: str, db: AsyncSession
-) -> AsyncGenerator[str, None]:
+def stream_agent_response(
+    user_message: str, user: User, conversation_id: str, db: Session
+) -> Generator[str, None, None]:
     """
     Stream agent responses using Server-Sent Events (SSE).
 
@@ -108,13 +105,13 @@ async def stream_agent_response(
 
     try:
         # Get conversation
-        conversation = await db.get(Conversation, conversation_id)
+        conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
         if not conversation or conversation.user_id != user.id:
             yield f"event: error\ndata: {json.dumps({'error': 'Conversation not found'})}\n\n"
             return
 
         # Save user message
-        user_msg = await save_message(db, conversation, "user", user_message)
+        user_msg = save_message(db, conversation, "user", user_message)
 
         # Send user message confirmation
         yield f"event: message\ndata: {json.dumps({'type': 'user', 'content': user_message, 'id': str(user_msg.id)})}\n\n"
@@ -138,7 +135,7 @@ async def stream_agent_response(
         tool_calls_list = []
 
         # Stream agent response
-        async for chunk in agent_executor.astream(
+        for chunk in agent_executor.stream(
             {"messages": [HumanMessage(content=user_message)]},
             config=config,
         ):
@@ -180,12 +177,12 @@ async def stream_agent_response(
                         yield f"event: tool_result\ndata: {json.dumps({'tool': tool_msg.name, 'result': 'completed'})}\n\n"
 
         # Save assistant message
-        assistant_msg = await save_message(db, conversation, "assistant", full_response)
+        assistant_msg = save_message(db, conversation, "assistant", full_response)
 
         # Update message metadata with tool calls
         if tool_calls_list:
             assistant_msg.message_metadata = {"tool_calls": tool_calls_list}
-            await db.commit()
+            db.commit()
 
         # Send completion event
         yield f"event: done\ndata: {json.dumps({'id': str(assistant_msg.id), 'tool_calls': tool_calls_list})}\n\n"
@@ -197,9 +194,9 @@ async def stream_agent_response(
 
 
 @router.post("/stream")
-async def stream_chat(
+def stream_chat(
     request: ChatRequest,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     """
     Stream chat responses using Server-Sent Events (SSE).
@@ -215,10 +212,10 @@ async def stream_chat(
     """
 
     # Get or create conversation (user is None for testing)
-    conversation = await get_or_create_conversation(db, None, request.conversation_id)
+    conversation = get_or_create_conversation(db, None, request.conversation_id)
 
     # Get the user from conversation
-    user = await db.get(User, conversation.user_id)
+    user = db.query(User).filter(User.id == conversation.user_id).first()
 
     # Return streaming response
     return StreamingResponse(
