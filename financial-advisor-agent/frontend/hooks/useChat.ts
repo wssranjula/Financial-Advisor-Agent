@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Message, ToolCall } from '../lib/types'
+import { Message, ToolCall } from './types'
 
 interface UseChatOptions {
   apiUrl?: string

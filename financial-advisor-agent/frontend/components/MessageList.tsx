@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Message } from '../lib/types'
+import { Message } from '../hooks/types'
 import MessageBubble from './MessageBubble'
 
 interface MessageListProps {
