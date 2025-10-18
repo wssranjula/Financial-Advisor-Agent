@@ -12,9 +12,9 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       // Get query parameters
-      const code = searchParams.get('code')
+      const success = searchParams.get('success')
+      const email = searchParams.get('email')
       const error = searchParams.get('error')
-      const provider = searchParams.get('state') || 'google' // You can pass provider in state
 
       if (error) {
         setStatus('error')
@@ -23,37 +23,19 @@ export default function AuthCallback() {
         return
       }
 
-      if (!code) {
+      if (success === 'true' && email) {
+        // OAuth successful
+        setStatus('success')
+        setMessage(`Welcome, ${email}! Redirecting to chat...`)
+
+        // Store user info in localStorage
+        localStorage.setItem('user', JSON.stringify({ email }))
+
+        // Redirect to chat
+        setTimeout(() => router.push('/'), 1500)
+      } else {
         setStatus('error')
-        setMessage('No authorization code received')
-        setTimeout(() => router.push('/login'), 3000)
-        return
-      }
-
-      try {
-        // The backend callback has already processed the OAuth
-        // Just check if we have a session
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include',
-        })
-
-        if (response.ok) {
-          const userData = await response.json()
-
-          // Store user data in localStorage
-          localStorage.setItem('user', JSON.stringify(userData))
-
-          setStatus('success')
-          setMessage('Authentication successful! Redirecting...')
-
-          // Redirect to main app
-          setTimeout(() => router.push('/'), 1000)
-        } else {
-          throw new Error('Failed to verify authentication')
-        }
-      } catch (err) {
-        setStatus('error')
-        setMessage('Failed to complete authentication')
+        setMessage('Authentication failed')
         setTimeout(() => router.push('/login'), 3000)
       }
     }

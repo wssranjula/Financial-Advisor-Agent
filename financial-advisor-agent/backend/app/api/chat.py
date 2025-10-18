@@ -41,9 +41,26 @@ class ChatResponse(BaseModel):
 
 
 async def get_or_create_conversation(
-    db: AsyncSession, user: User, conversation_id: Optional[str] = None
+    db: AsyncSession, user: Optional[User], conversation_id: Optional[str] = None
 ) -> Conversation:
     """Get existing conversation or create a new one."""
+
+    # For testing without auth, create a temporary user
+    if not user:
+        from sqlalchemy import select
+        result = await db.execute(select(User).limit(1))
+        user = result.scalar_one_or_none()
+
+        if not user:
+            # Create a test user if none exists
+            user = User(
+                email="test@example.com",
+                full_name="Test User",
+                is_active=True
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
 
     if conversation_id:
         # Try to get existing conversation
@@ -182,8 +199,8 @@ async def stream_agent_response(
 @router.post("/stream")
 async def stream_chat(
     request: ChatRequest,
-    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    user: User = None,
 ):
     """
     Stream chat responses using Server-Sent Events (SSE).

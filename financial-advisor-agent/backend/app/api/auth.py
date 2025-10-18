@@ -63,14 +63,33 @@ async def google_callback(
         # Get user info from Google
         credentials = google_oauth_service.get_credentials(token_dict)
 
-        # For MVP, extract email from credentials
-        # In production, make API call to get user info
-        user_email = "user@example.com"  # TODO: Get from Google People API
+        # Get user info from Google using People API
+        from googleapiclient.discovery import build
+
+        people_service = build('people', 'v1', credentials=credentials)
+        profile = people_service.people().get(
+            resourceName='people/me',
+            personFields='emailAddresses,names'
+        ).execute()
+
+        # Extract email and name
+        email_addresses = profile.get('emailAddresses', [])
+        user_email = email_addresses[0].get('value') if email_addresses else None
+
+        names = profile.get('names', [])
+        full_name = names[0].get('displayName') if names else None
+
+        if not user_email:
+            raise HTTPException(status_code=400, detail="Could not get email from Google")
 
         # Find or create user
         user = db.query(User).filter(User.email == user_email).first()
         if not user:
-            user = User(email=user_email, is_active=True)
+            user = User(
+                email=user_email,
+                full_name=full_name,
+                is_active=True
+            )
             db.add(user)
 
         # Encrypt and store token
@@ -78,12 +97,12 @@ async def google_callback(
         user.google_token = encrypted_token
 
         db.commit()
+        db.refresh(user)
 
-        return {
-            "message": "Google OAuth successful",
-            "user_id": str(user.id),
-            "email": user.email
-        }
+        # Redirect to frontend with success
+        from fastapi.responses import RedirectResponse
+        redirect_url = f"http://localhost:3000/auth/callback?success=true&email={user_email}"
+        return RedirectResponse(url=redirect_url)
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"OAuth failed: {str(e)}")
