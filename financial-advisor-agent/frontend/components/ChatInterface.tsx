@@ -1,6 +1,7 @@
 'use client'
 
 import { useChat } from '../hooks/useChat'
+import { useAuth } from '../contexts/AuthContext'
 import MessageList from './MessageList'
 import InputArea from './InputArea'
 
@@ -11,6 +12,7 @@ export default function ChatInterface() {
       console.error('Chat error:', err)
     },
   })
+  const { user, logout } = useAuth()
 
   const handleSendMessage = async (content: string) => {
     await sendMessage(content)
@@ -30,15 +32,50 @@ export default function ChatInterface() {
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <div
-              className={`h-2 w-2 rounded-full ${
-                isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'
-              }`}
-            />
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {isLoading ? 'Thinking...' : 'Ready'}
-            </span>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <div
+                className={`h-2 w-2 rounded-full ${
+                  isLoading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'
+                }`}
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {isLoading ? 'Thinking...' : 'Ready'}
+              </span>
+            </div>
+
+            {/* User Info & Logout */}
+            <div className="flex items-center space-x-3 pl-4 border-l border-gray-300 dark:border-gray-600">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">
+                    {user?.email?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">
+                  {user?.email}
+                </span>
+              </div>
+              <button
+                onClick={logout}
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center space-x-1 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
 

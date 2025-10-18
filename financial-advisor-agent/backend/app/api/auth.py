@@ -101,7 +101,8 @@ async def google_callback(
 
         # Redirect to frontend with success
         from fastapi.responses import RedirectResponse
-        redirect_url = f"http://localhost:3000/auth/callback?success=true&email={user_email}"
+        from app.config import settings
+        redirect_url = f"{settings.FRONTEND_URL}/auth/callback?success=true&email={user_email}"
         return RedirectResponse(url=redirect_url)
 
     except Exception as e:
