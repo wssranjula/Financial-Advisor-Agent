@@ -12,9 +12,16 @@ app = FastAPI(
 )
 
 # CORS Middleware
+# Build allowed origins list: include configured ALLOWED_ORIGINS plus FRONTEND_URL
+allowed_origins = list(settings.ALLOWED_ORIGINS or [])
+if settings.FRONTEND_URL:
+    # ensure FRONTEND_URL is present and avoid duplicates
+    if settings.FRONTEND_URL not in allowed_origins:
+        allowed_origins.append(settings.FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

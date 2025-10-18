@@ -12,7 +12,7 @@ export default function LoginPage() {
 
     try {
       // Get Google OAuth URL from backend
-      const response = await fetch('/api/auth/google/login')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/google/login`)
       const data = await response.json()
 
       if (data.authorization_url) {
@@ -33,7 +33,7 @@ export default function LoginPage() {
 
     try {
       // Get HubSpot OAuth URL from backend
-      const response = await fetch('/api/auth/hubspot/login')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/hubspot/login`)
       const data = await response.json()
 
       if (data.authorization_url) {
