@@ -6,8 +6,7 @@ to help financial advisors manage client relationships and daily tasks.
 """
 from typing import Dict, Any, List, Optional
 from langchain_anthropic import ChatAnthropic
-from deepagents import create_react_agent
-from deepagents.checkpoint import MemorySaver
+from deepagents import create_deep_agent
 from app.agents.tools.gmail_tools import gmail_tools
 from app.agents.tools.calendar_tools import calendar_tools
 from app.agents.tools.hubspot_tools import hubspot_tools
@@ -219,11 +218,11 @@ def create_financial_advisor_agent(
         hubspot_manager_agent()
     ]
 
-    # Create memory checkpointer
-    checkpointer = MemorySaver()
+    # Checkpointer is optional; leave as None if unavailable or not configured
+    checkpointer = None
 
     # Create agent graph using DeepAgents
-    agent = create_react_agent(
+    agent = create_deep_agent(
         llm=llm,
         tools=all_tools,
         instructions=FINANCIAL_ADVISOR_AGENT_INSTRUCTIONS,

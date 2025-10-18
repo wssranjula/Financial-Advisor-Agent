@@ -15,7 +15,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.conversation import Conversation
 from app.models.message import Message as MessageModel
-from app.api.auth import get_current_user
+from app.api.dependencies import get_current_user
 from app.agents.main_agent import create_financial_advisor_agent
 from langchain_core.messages import HumanMessage, AIMessage
 

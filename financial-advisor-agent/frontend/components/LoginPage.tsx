@@ -12,12 +12,12 @@ export default function LoginPage() {
 
     try {
       // Get Google OAuth URL from backend
-      const response = await fetch('/api/auth/google/url')
+      const response = await fetch('/api/auth/google/login')
       const data = await response.json()
 
-      if (data.url) {
+      if (data.authorization_url) {
         // Redirect to Google OAuth
-        window.location.href = data.url
+        window.location.href = data.authorization_url
       } else {
         setError('Failed to get authorization URL')
       }
@@ -33,12 +33,12 @@ export default function LoginPage() {
 
     try {
       // Get HubSpot OAuth URL from backend
-      const response = await fetch('/api/auth/hubspot/url')
+      const response = await fetch('/api/auth/hubspot/login')
       const data = await response.json()
 
-      if (data.url) {
+      if (data.authorization_url) {
         // Redirect to HubSpot OAuth
-        window.location.href = data.url
+        window.location.href = data.authorization_url
       } else {
         setError('Failed to get authorization URL')
       }
