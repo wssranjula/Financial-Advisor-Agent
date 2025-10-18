@@ -1,77 +1,19 @@
 'use client'
 
-import { useState } from 'react'
-import { Message } from '@/lib/types'
+import { useChat } from '@/lib/useChat'
 import MessageList from './MessageList'
 import InputArea from './InputArea'
 
 export default function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { messages, isLoading, error, sendMessage, clearError } = useChat({
+    apiUrl: '/api/chat',
+    onError: (err) => {
+      console.error('Chat error:', err)
+    },
+  })
 
   const handleSendMessage = async (content: string) => {
-    // Create user message
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content,
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, userMessage])
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      // TODO: This will be replaced with actual SSE streaming in the next step
-      // For now, just a placeholder that simulates a response
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: content,
-          conversation_id: 'temp-conversation',
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      // Create assistant message
-      const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        content: data.response || 'I received your message.',
-        timestamp: new Date(),
-        metadata: {
-          toolCalls: data.tool_calls,
-          sources: data.sources,
-        },
-      }
-
-      setMessages((prev) => [...prev, assistantMessage])
-    } catch (err) {
-      console.error('Error sending message:', err)
-      setError('Failed to send message. Please try again.')
-
-      // Add error message to chat
-      const errorMessage: Message = {
-        id: `error-${Date.now()}`,
-        role: 'system',
-        content: 'Failed to send message. Please try again.',
-        timestamp: new Date(),
-      }
-
-      setMessages((prev) => [...prev, errorMessage])
-    } finally {
-      setIsLoading(false)
-    }
+    await sendMessage(content)
   }
 
   return (
