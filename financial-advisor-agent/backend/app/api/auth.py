@@ -99,11 +99,10 @@ async def google_callback(
         db.commit()
         db.refresh(user)
 
-    # Redirect to frontend with success
-    from fastapi.responses import RedirectResponse
-    from app.config import settings
-    redirect_url = f"{settings.FRONTEND_URL}/auth/callback?success=true&email={user_email}"
-    return RedirectResponse(url=redirect_url)
+        # Redirect to frontend with success
+        from fastapi.responses import RedirectResponse
+        redirect_url = f"http://localhost:3000/auth/callback?success=true&email={user_email}"
+        return RedirectResponse(url=redirect_url)
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"OAuth failed: {str(e)}")
