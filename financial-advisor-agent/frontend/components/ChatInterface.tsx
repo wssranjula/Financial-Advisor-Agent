@@ -1,7 +1,6 @@
 'use client'
 
-import { useChat } from '../hooks/useChat'
-import { useAuth } from '../contexts/AuthContext'
+import { useChat } from '@/lib/useChat'
 import MessageList from './MessageList'
 import InputArea from './InputArea'
 
