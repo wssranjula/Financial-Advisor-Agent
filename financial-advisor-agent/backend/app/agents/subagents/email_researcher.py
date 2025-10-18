@@ -63,7 +63,7 @@ def email_researcher_agent() -> Dict[str, Any]:
     """
     return {
         "name": "email_researcher",
-        "instructions": EMAIL_RESEARCHER_INSTRUCTIONS,
+        "system_prompt": EMAIL_RESEARCHER_INSTRUCTIONS,
         "tools": gmail_tools,
         "description": "Specialist in researching and analyzing emails"
     }

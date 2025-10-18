@@ -186,7 +186,6 @@ Remember: You are empowering financial advisors to build stronger client relatio
 
 def create_financial_advisor_agent(
     model_name: str = "claude-sonnet-4-20250514",
-    user: Optional[Any] = None,
     thread_id: Optional[str] = None
 ) -> Any:
     """
@@ -194,7 +193,6 @@ def create_financial_advisor_agent(
 
     Args:
         model_name: Claude model to use (default: claude-sonnet-4-20250514)
-        user: User object for authentication context (passed to tools)
         thread_id: Optional thread ID for conversation persistence
 
     Returns:
@@ -223,9 +221,9 @@ def create_financial_advisor_agent(
 
     # Create agent graph using DeepAgents
     agent = create_deep_agent(
-        llm=llm,
+        model=llm,
         tools=all_tools,
-        instructions=FINANCIAL_ADVISOR_AGENT_INSTRUCTIONS,
+        system_prompt=FINANCIAL_ADVISOR_AGENT_INSTRUCTIONS,
         subagents=subagents,
         checkpointer=checkpointer
     )
@@ -239,7 +237,7 @@ def invoke_agent(
     agent: Any,
     message: str,
     thread_id: str,
-    user: Any
+    user_id: str
 ) -> Dict[str, Any]:
     """
     Invoke the agent with a message
@@ -248,17 +246,17 @@ def invoke_agent(
         agent: Configured agent graph
         message: User message
         thread_id: Thread ID for conversation persistence
-        user: User object for authentication
+        user_id: User ID string for authentication
 
     Returns:
         Dict with agent response
     """
     try:
-        # Prepare config with thread_id and user context
+        # Prepare config with thread_id and user_id
         config = {
             "configurable": {
                 "thread_id": thread_id,
-                "user": user  # Inject user for tool authentication
+                "user_id": user_id
             }
         }
 
@@ -279,7 +277,7 @@ def stream_agent(
     agent: Any,
     message: str,
     thread_id: str,
-    user: Any
+    user_id: str
 ):
     """
     Stream agent responses
@@ -288,7 +286,7 @@ def stream_agent(
         agent: Configured agent graph
         message: User message
         thread_id: Thread ID for conversation persistence
-        user: User object for authentication
+        user_id: User ID string for authentication
 
     Yields:
         Agent response chunks
@@ -298,7 +296,7 @@ def stream_agent(
         config = {
             "configurable": {
                 "thread_id": thread_id,
-                "user": user
+                "user_id": user_id
             }
         }
 

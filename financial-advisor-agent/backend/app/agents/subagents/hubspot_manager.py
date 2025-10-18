@@ -85,7 +85,7 @@ def hubspot_manager_agent() -> Dict[str, Any]:
     """
     return {
         "name": "hubspot_manager",
-        "instructions": HUBSPOT_MANAGER_INSTRUCTIONS,
+        "system_prompt": HUBSPOT_MANAGER_INSTRUCTIONS,
         "tools": hubspot_tools,
         "description": "Specialist in CRM contact and client information management"
     }

@@ -6,13 +6,12 @@ from typing import Optional, List, Dict, Any
 from app.integrations.gmail import GmailClient
 from app.integrations.google_auth import google_oauth_service
 from app.security import encryption_service
-from app.models import User
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _get_gmail_client(user: User) -> GmailClient:
+def _get_gmail_client(user: Any) -> GmailClient:
     """
     Helper to get authenticated Gmail client for user
 
@@ -42,7 +41,7 @@ def _get_gmail_client(user: User) -> GmailClient:
 def search_emails(
     query: str,
     max_results: int = 20,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Search Gmail emails using Gmail query syntax.
@@ -115,7 +114,7 @@ def search_emails(
 @tool
 def get_email(
     message_id: str,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Get the full content of a specific email by its message ID.
@@ -173,7 +172,7 @@ def send_email(
     body: str,
     cc: Optional[str] = None,
     bcc: Optional[str] = None,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Send an email via Gmail.
@@ -222,7 +221,7 @@ def reply_to_email(
     message_id: str,
     body: str,
     reply_all: bool = False,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Reply to an existing email.

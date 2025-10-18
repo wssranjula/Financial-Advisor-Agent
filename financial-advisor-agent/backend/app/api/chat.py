@@ -117,7 +117,10 @@ def stream_agent_response(
         yield f"event: message\ndata: {json.dumps({'type': 'user', 'content': user_message, 'id': str(user_msg.id)})}\n\n"
 
         # Create agent with user context
-        agent_executor = create_financial_advisor_agent(user)
+        agent_executor = create_financial_advisor_agent(
+            model_name="claude-sonnet-4-20250514",
+            thread_id=conversation_id
+        )
 
         # Prepare agent input
         config = {
@@ -252,7 +255,10 @@ def send_message(
         user_msg = save_message(db, conversation, "user", request.message)
 
         # Create agent with user context
-        agent_executor = create_financial_advisor_agent(user)
+        agent_executor = create_financial_advisor_agent(
+            model_name="claude-sonnet-4-20250514",
+            thread_id=str(conversation.id)
+        )
 
         # Prepare agent input
         config = {

@@ -4,10 +4,9 @@ RAG (Retrieval-Augmented Generation) tools for DeepAgents
 Provides semantic search over emails and CRM data.
 """
 from langchain_core.tools import tool
-from typing import Optional, List
+from typing import Optional, List, Any
 from app.services.retrieval_service import RetrievalService
 from app.database import SessionLocal
-from app.models import User
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ def rag_search(
     query: str,
     search_type: str = "all",
     max_results: int = 5,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Search through emails and CRM data using semantic similarity.
@@ -158,7 +157,7 @@ def rag_search(
 
 @tool
 def get_rag_stats(
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Get statistics about indexed data available for search.

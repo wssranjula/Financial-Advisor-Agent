@@ -72,7 +72,7 @@ def calendar_scheduler_agent() -> Dict[str, Any]:
     """
     return {
         "name": "calendar_scheduler",
-        "instructions": CALENDAR_SCHEDULER_INSTRUCTIONS,
+        "system_prompt": CALENDAR_SCHEDULER_INSTRUCTIONS,
         "tools": calendar_tools,
         "description": "Specialist in calendar management and scheduling"
     }

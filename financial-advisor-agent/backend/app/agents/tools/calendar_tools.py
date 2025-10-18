@@ -2,18 +2,17 @@
 Google Calendar tools for DeepAgents
 """
 from langchain_core.tools import tool
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime, timedelta
 from app.integrations.calendar import CalendarClient
 from app.integrations.google_auth import google_oauth_service
 from app.security import encryption_service
-from app.models import User
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _get_calendar_client(user: User) -> CalendarClient:
+def _get_calendar_client(user: Any) -> CalendarClient:
     """
     Helper to get authenticated Calendar client for user
 
@@ -44,7 +43,7 @@ def get_calendar_events(
     days_ahead: int = 7,
     max_results: int = 50,
     query: Optional[str] = None,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Get upcoming calendar events.
@@ -142,7 +141,7 @@ def create_calendar_event(
     description: Optional[str] = None,
     location: Optional[str] = None,
     attendees: Optional[str] = None,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Create a new calendar event.
@@ -235,7 +234,7 @@ def create_calendar_event(
 @tool
 def get_free_busy(
     days_ahead: int = 7,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Check free/busy availability for the user's calendar.
@@ -306,7 +305,7 @@ def get_free_busy(
 def find_available_slots(
     duration_minutes: int = 60,
     days_ahead: int = 7,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Find available time slots in the calendar.

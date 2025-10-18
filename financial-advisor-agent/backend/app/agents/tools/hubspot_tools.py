@@ -5,13 +5,12 @@ from langchain_core.tools import tool
 from typing import Optional, List, Dict, Any
 from app.integrations.hubspot import HubSpotClient
 from app.security import encryption_service
-from app.models import User
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _get_hubspot_client(user: User) -> HubSpotClient:
+def _get_hubspot_client(user: Any) -> HubSpotClient:
     """
     Helper to get authenticated HubSpot client for user
 
@@ -45,7 +44,7 @@ def search_contacts(
     search_query: str,
     search_field: str = "email",
     max_results: int = 20,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Search for contacts in HubSpot CRM.
@@ -137,7 +136,7 @@ def search_contacts(
 @tool
 def get_contact_details(
     contact_id: str,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Get detailed information about a specific contact.
@@ -233,7 +232,7 @@ def create_contact(
     company: Optional[str] = None,
     phone: Optional[str] = None,
     jobtitle: Optional[str] = None,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Create a new contact in HubSpot CRM.
@@ -314,7 +313,7 @@ def create_contact(
 def create_note(
     note_text: str,
     contact_email: Optional[str] = None,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Create a note in HubSpot CRM.
@@ -380,7 +379,7 @@ def create_note(
 def get_contact_notes(
     contact_email: str,
     max_results: int = 10,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Get notes associated with a contact.
@@ -446,7 +445,7 @@ def get_contact_notes(
 @tool
 def get_recent_contacts(
     max_results: int = 20,
-    user: Optional[User] = None
+    user: Optional[Any] = None
 ) -> str:
     """
     Get recently created or updated contacts.
