@@ -123,7 +123,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           }
 
           // Decode chunk
-          buffer += decoder.decode(value, { stream: true })
+          const decodedChunk = decoder.decode(value, { stream: true })
+          buffer += decodedChunk
 
           // Process complete SSE messages
           const lines = buffer.split('\n')
@@ -244,7 +245,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 // Reset event name after processing
                 currentEvent = ''
               } catch (parseError) {
-                console.error('Failed to parse SSE data:', parseError, dataStr)
+                console.error('Failed to parse SSE data:', parseError)
                 currentEvent = ''
               }
             }

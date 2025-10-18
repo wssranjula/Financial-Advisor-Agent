@@ -142,17 +142,38 @@ def stream_agent_response(
             {"messages": [HumanMessage(content=user_message)]},
             config=config,
         ):
+
             # Handle different types of chunks
-            if "agent" in chunk:
-                # Agent is thinking/responding
-                agent_message = chunk["agent"]["messages"][0]
+            # Check for both 'agent' and 'model' keys (DeepAgents uses 'model')
+            if "agent" in chunk or "model" in chunk:
+                # Extract the key that exists
+                key = "agent" if "agent" in chunk else "model"
+
+                # Agent/Model is thinking/responding
+                agent_message = chunk[key]["messages"][0]
 
                 if hasattr(agent_message, "content") and agent_message.content:
                     content = agent_message.content
-                    full_response += content
 
-                    # Send content chunk
-                    yield f"event: chunk\ndata: {json.dumps({'content': content})}\n\n"
+                    # Handle both string content and list content (when using tools)
+                    if isinstance(content, list):
+                        # Extract text from content blocks
+                        text_parts = [
+                            block.get('text', '') if isinstance(block, dict) and block.get('type') == 'text'
+                            else ''
+                            for block in content
+                        ]
+                        content_text = ''.join(text_parts)
+                    elif isinstance(content, str):
+                        content_text = content
+                    else:
+                        content_text = str(content)
+
+                    # Only add and send if there's actual text content
+                    if content_text:
+                        full_response += content_text
+                        # Send content chunk
+                        yield f"event: chunk\ndata: {json.dumps({'content': content_text})}\n\n"
 
                 # Track tool calls
                 if hasattr(agent_message, "tool_calls") and agent_message.tool_calls:
@@ -191,6 +212,11 @@ def stream_agent_response(
         yield f"event: done\ndata: {json.dumps({'id': str(assistant_msg.id), 'tool_calls': tool_calls_list})}\n\n"
 
     except Exception as e:
+        import traceback
+        # Log exception for debugging
+        print(f"ERROR in stream_agent_response: {type(e).__name__}: {str(e)}")
+        print(traceback.format_exc())
+
         # Send error event
         error_message = f"An error occurred: {str(e)}"
         yield f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"

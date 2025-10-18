@@ -1,15 +1,46 @@
 """
 Google Calendar tools for DeepAgents
 """
-from langchain_core.tools import tool
-from typing import Optional, List, Any
-from datetime import datetime, timedelta
+from langchain_core.tools import tool, InjectedToolArg
+from langchain_core.runnables import RunnableConfig
+from typing import Optional, List, Any, Annotated
+from datetime import datetime, timedelta, timezone
 from app.integrations.calendar import CalendarClient
 from app.integrations.google_auth import google_oauth_service
 from app.security import encryption_service
+from app.database import SessionLocal
+from app.models.user import User
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _get_user_from_config(config: Optional[RunnableConfig]) -> Optional[Any]:
+    """
+    Extract user from LangChain config.
+
+    Args:
+        config: LangChain RunnableConfig passed to tool
+
+    Returns:
+        User model instance or None
+    """
+    if not config:
+        return None
+
+    configurable = config.get("configurable", {})
+    user_id = configurable.get("user_id")
+
+    if not user_id:
+        return None
+
+    # Fetch user from database
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        return user
+    finally:
+        db.close()
 
 
 def _get_calendar_client(user: Any) -> CalendarClient:
@@ -43,7 +74,7 @@ def get_calendar_events(
     days_ahead: int = 7,
     max_results: int = 50,
     query: Optional[str] = None,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Get upcoming calendar events.
@@ -54,19 +85,19 @@ def get_calendar_events(
         days_ahead: Number of days to look ahead (default 7)
         max_results: Maximum number of events to return (default 50)
         query: Optional search query to filter events
-        user: User object (injected by agent context)
 
     Returns:
         String with formatted list of upcoming events
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_calendar_client(user)
 
         # Calculate time range
-        time_min = datetime.utcnow()
+        time_min = datetime.now(timezone.utc)
         time_max = time_min + timedelta(days=days_ahead)
 
         # List events
@@ -141,7 +172,7 @@ def create_calendar_event(
     description: Optional[str] = None,
     location: Optional[str] = None,
     attendees: Optional[str] = None,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Create a new calendar event.
@@ -157,14 +188,14 @@ def create_calendar_event(
         location: Optional event location
         attendees: Optional comma-separated list of attendee emails
                    Example: "john@example.com,jane@example.com"
-        user: User object (injected by agent context)
 
     Returns:
         Success message with created event details
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_calendar_client(user)
 
@@ -234,7 +265,7 @@ def create_calendar_event(
 @tool
 def get_free_busy(
     days_ahead: int = 7,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Check free/busy availability for the user's calendar.
@@ -243,19 +274,19 @@ def get_free_busy(
 
     Args:
         days_ahead: Number of days to check (default 7)
-        user: User object (injected by agent context)
 
     Returns:
         String with free/busy information and available time slots
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_calendar_client(user)
 
         # Calculate time range
-        time_min = datetime.utcnow()
+        time_min = datetime.now(timezone.utc)
         time_max = time_min + timedelta(days=days_ahead)
 
         # Get free/busy info
@@ -305,7 +336,7 @@ def get_free_busy(
 def find_available_slots(
     duration_minutes: int = 60,
     days_ahead: int = 7,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Find available time slots in the calendar.
@@ -315,19 +346,19 @@ def find_available_slots(
     Args:
         duration_minutes: Required duration for the slot (default 60 minutes)
         days_ahead: Number of days to search (default 7)
-        user: User object (injected by agent context)
 
     Returns:
         String with list of available time slots
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_calendar_client(user)
 
         # Calculate time range (business hours only: 9am-5pm)
-        time_min = datetime.utcnow()
+        time_min = datetime.now(timezone.utc)
         time_max = time_min + timedelta(days=days_ahead)
 
         # Find available slots

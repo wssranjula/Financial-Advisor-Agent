@@ -1,14 +1,56 @@
 """
 Gmail tools for DeepAgents
 """
-from langchain_core.tools import tool
-from typing import Optional, List, Dict, Any
+from langchain_core.tools import tool, InjectedToolArg
+from langchain_core.runnables import RunnableConfig
+from typing import Optional, List, Dict, Any, Annotated
 from app.integrations.gmail import GmailClient
 from app.integrations.google_auth import google_oauth_service
 from app.security import encryption_service
+from app.database import SessionLocal
+from app.models.user import User
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _get_user_from_config(config: Optional[RunnableConfig]) -> Optional[Any]:
+    """
+    Extract user from LangChain config.
+
+    Args:
+        config: LangChain RunnableConfig passed to tool
+
+    Returns:
+        User model instance or None
+    """
+    logger.info(f"Getting user from config: {config}")
+
+    if not config:
+        logger.warning("No config provided to tool")
+        return None
+
+    configurable = config.get("configurable", {})
+    logger.info(f"Configurable: {configurable}")
+
+    user_id = configurable.get("user_id")
+    logger.info(f"User ID from config: {user_id}")
+
+    if not user_id:
+        logger.warning("No user_id in config")
+        return None
+
+    # Fetch user from database
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            logger.info(f"Found user: {user.email}")
+        else:
+            logger.warning(f"No user found with ID: {user_id}")
+        return user
+    finally:
+        db.close()
 
 
 def _get_gmail_client(user: Any) -> GmailClient:
@@ -41,7 +83,7 @@ def _get_gmail_client(user: Any) -> GmailClient:
 def search_emails(
     query: str,
     max_results: int = 20,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Search Gmail emails using Gmail query syntax.
@@ -56,14 +98,14 @@ def search_emails(
             - "has:attachment" - emails with attachments
             - "from:john@example.com subject:meeting" - combine filters
         max_results: Maximum number of emails to return (default 20)
-        user: User object (injected by agent context)
 
     Returns:
         String with email details including subject, from, date, snippet
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_gmail_client(user)
 
@@ -114,7 +156,7 @@ def search_emails(
 @tool
 def get_email(
     message_id: str,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Get the full content of a specific email by its message ID.
@@ -123,14 +165,14 @@ def get_email(
 
     Args:
         message_id: Gmail message ID (from search_emails results)
-        user: User object (injected by agent context)
 
     Returns:
         String with full email content including headers and body
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_gmail_client(user)
 
@@ -172,7 +214,7 @@ def send_email(
     body: str,
     cc: Optional[str] = None,
     bcc: Optional[str] = None,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Send an email via Gmail.
@@ -185,14 +227,14 @@ def send_email(
         body: Email body content (plain text)
         cc: CC email address (optional)
         bcc: BCC email address (optional)
-        user: User object (injected by agent context)
 
     Returns:
         Success message with sent email details
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_gmail_client(user)
 
@@ -221,7 +263,7 @@ def reply_to_email(
     message_id: str,
     body: str,
     reply_all: bool = False,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Reply to an existing email.
@@ -232,14 +274,14 @@ def reply_to_email(
         message_id: Gmail message ID of the email to reply to
         body: Reply message body (plain text)
         reply_all: If True, reply to all recipients. If False, reply only to sender (default False)
-        user: User object (injected by agent context)
 
     Returns:
         Success message with reply details
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_gmail_client(user)
 

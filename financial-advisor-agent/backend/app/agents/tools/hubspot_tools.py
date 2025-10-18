@@ -1,13 +1,44 @@
 """
 HubSpot CRM tools for DeepAgents
 """
-from langchain_core.tools import tool
-from typing import Optional, List, Dict, Any
+from langchain_core.tools import tool, InjectedToolArg
+from langchain_core.runnables import RunnableConfig
+from typing import Optional, List, Dict, Any, Annotated
 from app.integrations.hubspot import HubSpotClient
 from app.security import encryption_service
+from app.database import SessionLocal
+from app.models.user import User
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _get_user_from_config(config: Optional[RunnableConfig]) -> Optional[Any]:
+    """
+    Extract user from LangChain config.
+
+    Args:
+        config: LangChain RunnableConfig passed to tool
+
+    Returns:
+        User model instance or None
+    """
+    if not config:
+        return None
+
+    configurable = config.get("configurable", {})
+    user_id = configurable.get("user_id")
+
+    if not user_id:
+        return None
+
+    # Fetch user from database
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        return user
+    finally:
+        db.close()
 
 
 def _get_hubspot_client(user: Any) -> HubSpotClient:
@@ -44,7 +75,7 @@ def search_contacts(
     search_query: str,
     search_field: str = "email",
     max_results: int = 20,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Search for contacts in HubSpot CRM.
@@ -56,14 +87,14 @@ def search_contacts(
         search_field: Field to search in. Options: "email", "firstname", "lastname", "company", "phone"
                      Default is "email"
         max_results: Maximum number of contacts to return (default 20)
-        user: User object (injected by agent context)
 
     Returns:
         String with formatted list of matching contacts
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_hubspot_client(user)
 
@@ -136,7 +167,7 @@ def search_contacts(
 @tool
 def get_contact_details(
     contact_id: str,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Get detailed information about a specific contact.
@@ -145,14 +176,14 @@ def get_contact_details(
 
     Args:
         contact_id: HubSpot contact ID (from search_contacts results)
-        user: User object (injected by agent context)
 
     Returns:
         String with complete contact information
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_hubspot_client(user)
 
@@ -232,7 +263,7 @@ def create_contact(
     company: Optional[str] = None,
     phone: Optional[str] = None,
     jobtitle: Optional[str] = None,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Create a new contact in HubSpot CRM.
@@ -246,14 +277,14 @@ def create_contact(
         company: Company name (optional)
         phone: Phone number (optional)
         jobtitle: Job title (optional)
-        user: User object (injected by agent context)
 
     Returns:
         Success message with created contact details
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_hubspot_client(user)
 
@@ -313,7 +344,7 @@ def create_contact(
 def create_note(
     note_text: str,
     contact_email: Optional[str] = None,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Create a note in HubSpot CRM.
@@ -323,14 +354,14 @@ def create_note(
     Args:
         note_text: Note content (can be plain text or HTML)
         contact_email: Optional email of contact to associate note with
-        user: User object (injected by agent context)
 
     Returns:
         Success message with created note details
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_hubspot_client(user)
 
@@ -379,7 +410,7 @@ def create_note(
 def get_contact_notes(
     contact_email: str,
     max_results: int = 10,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Get notes associated with a contact.
@@ -389,14 +420,14 @@ def get_contact_notes(
     Args:
         contact_email: Email of the contact
         max_results: Maximum number of notes to return (default 10)
-        user: User object (injected by agent context)
 
     Returns:
         String with formatted list of notes
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_hubspot_client(user)
 
@@ -445,7 +476,7 @@ def get_contact_notes(
 @tool
 def get_recent_contacts(
     max_results: int = 20,
-    user: Optional[Any] = None
+    config: Annotated[RunnableConfig, InjectedToolArg] = None
 ) -> str:
     """
     Get recently created or updated contacts.
@@ -454,14 +485,14 @@ def get_recent_contacts(
 
     Args:
         max_results: Maximum number of contacts to return (default 20)
-        user: User object (injected by agent context)
 
     Returns:
         String with formatted list of recent contacts
     """
     try:
+        user = _get_user_from_config(config)
         if not user:
-            return "Error: User context not available"
+            return "Error: User context not available. Please ensure you are authenticated."
 
         client = _get_hubspot_client(user)
 
