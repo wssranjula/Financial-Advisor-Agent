@@ -1,4 +1,4 @@
-import { Message } from '../hooks/types'
+import { Message } from '@/hooks/types'
 import ReactMarkdown from 'react-markdown'
 import CalendarEventCard from './CalendarEventCard'
 import ContactCard from './ContactCard'

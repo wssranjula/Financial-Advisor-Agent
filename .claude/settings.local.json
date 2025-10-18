@@ -14,7 +14,9 @@
       "Bash(git push:*)",
       "Bash(git pull:*)",
       "Bash(cat:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(dir /B)",
+      "Bash(npm run build)"
     ],
     "deny": [],
     "ask": []

@@ -129,9 +129,11 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           const lines = buffer.split('\n')
           buffer = lines.pop() || '' // Keep incomplete line in buffer
 
+          let currentEvent = ''
+
           for (const line of lines) {
             if (line.startsWith('event:')) {
-              const eventType = line.substring(6).trim()
+              currentEvent = line.substring(6).trim()
               continue
             }
 
@@ -143,13 +145,14 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
               try {
                 const data = JSON.parse(dataStr)
 
-                // Handle different event types
-                if (data.type === 'user') {
+                // Handle different event types based on event name
+                if (currentEvent === 'message' && data.type === 'user') {
                   // Echo of user message - ignore, already added
+                  currentEvent = ''
                   continue
                 }
 
-                if (data.content) {
+                if (currentEvent === 'chunk' && data.content) {
                   // New content chunk
                   currentMessageRef.current += data.content
 
@@ -185,7 +188,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                   })
                 }
 
-                if (data.name) {
+                if (currentEvent === 'tool' && data.name) {
                   // Tool call notification
                   const toolCall: ToolCall = {
                     name: data.name,
@@ -195,7 +198,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                   currentToolCallsRef.current.push(toolCall)
                 }
 
-                if (data.tool && data.result) {
+                if (currentEvent === 'tool_result' && data.tool && data.result) {
                   // Tool result - update the tool call
                   const toolIndex = currentToolCallsRef.current.findIndex(
                     (t) => t.name === data.tool
@@ -206,7 +209,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                   }
                 }
 
-                if (data.id && data.tool_calls !== undefined) {
+                if (currentEvent === 'done' && data.id) {
                   // Done event - finalize message
                   currentMessageIdRef.current = data.id
 
@@ -233,12 +236,16 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                   setIsLoading(false)
                 }
 
-                if (data.error) {
+                if (currentEvent === 'error' && data.error) {
                   // Error event
                   throw new Error(data.error)
                 }
+
+                // Reset event name after processing
+                currentEvent = ''
               } catch (parseError) {
                 console.error('Failed to parse SSE data:', parseError, dataStr)
+                currentEvent = ''
               }
             }
           }
