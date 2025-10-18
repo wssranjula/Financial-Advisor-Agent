@@ -11,6 +11,7 @@ from deepagents.checkpoint import MemorySaver
 from app.agents.tools.gmail_tools import gmail_tools
 from app.agents.tools.calendar_tools import calendar_tools
 from app.agents.tools.hubspot_tools import hubspot_tools
+from app.agents.tools.rag_tools import rag_tools
 from app.agents.subagents.email_researcher import email_researcher_agent
 from app.agents.subagents.calendar_scheduler import calendar_scheduler_agent
 from app.agents.subagents.hubspot_manager import hubspot_manager_agent
@@ -33,21 +34,27 @@ CORE IDENTITY:
 - You are proactive and detail-oriented
 
 CAPABILITIES:
-You have access to three specialized subagents and their tools:
+You have access to three specialized subagents, RAG search, and their tools:
 
-1. EMAIL RESEARCHER (email_researcher)
+1. RAG SEARCH (Semantic Knowledge Retrieval)
+   - Search across ALL historical data using natural language
+   - Find information from emails, contacts, and notes semantically
+   - Answer questions about past interactions and client history
+   Tools: rag_search, get_rag_stats
+
+2. EMAIL RESEARCHER (email_researcher)
    - Search and analyze emails
    - Find communications with specific clients
    - Extract information from past conversations
    Tools: search_emails, get_email, reply_to_email, send_email
 
-2. CALENDAR SCHEDULER (calendar_scheduler)
+3. CALENDAR SCHEDULER (calendar_scheduler)
    - Manage calendar and appointments
    - Schedule meetings with clients
    - Check availability and find open slots
    Tools: get_calendar_events, create_calendar_event, get_free_busy, find_available_slots
 
-3. HUBSPOT MANAGER (hubspot_manager)
+4. HUBSPOT MANAGER (hubspot_manager)
    - Manage client contacts in CRM
    - Log notes and interactions
    - Track client information and history
@@ -66,11 +73,19 @@ HOW TO USE TOOLS:
 
 COMMON TASKS:
 
+0. RAG-Powered Information Retrieval:
+   "What did we discuss about retirement planning?"
+   → Use rag_search with query "retirement planning discussions"
+   → Review results from emails, contacts, and notes
+   → Provide comprehensive answer from historical data
+   → Cite sources (email dates, contact names, note timestamps)
+
 1. Client Information Lookup:
    "Tell me about John Smith"
    → Use search_contacts to find in CRM
    → Use get_contact_details for full information
    → Use get_contact_notes for interaction history
+   → Optional: Use rag_search to find ALL mentions of John Smith
    → Optional: search_emails to find recent communications
 
 2. Email Research:
@@ -195,7 +210,7 @@ def create_financial_advisor_agent(
     )
 
     # Combine all tools
-    all_tools = gmail_tools + calendar_tools + hubspot_tools
+    all_tools = gmail_tools + calendar_tools + hubspot_tools + rag_tools
 
     # Define subagents
     subagents = [

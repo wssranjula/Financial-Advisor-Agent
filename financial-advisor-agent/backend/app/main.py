@@ -35,10 +35,10 @@ async def health_check():
     return {"status": "healthy"}
 
 # Import and include routers
-from app.api import auth
+from app.api import auth, sync
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(sync.router, prefix="/api/sync", tags=["sync"])
 
 # TODO: Add more routers as they are implemented
 # app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
-# app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
