@@ -200,7 +200,6 @@ async def stream_agent_response(
 async def stream_chat(
     request: ChatRequest,
     db: AsyncSession = Depends(get_db),
-    user: User = None,
 ):
     """
     Stream chat responses using Server-Sent Events (SSE).
@@ -215,8 +214,11 @@ async def stream_chat(
     - `error`: Error occurred
     """
 
-    # Get or create conversation
-    conversation = await get_or_create_conversation(db, user, request.conversation_id)
+    # Get or create conversation (user is None for testing)
+    conversation = await get_or_create_conversation(db, None, request.conversation_id)
+
+    # Get the user from conversation
+    user = await db.get(User, conversation.user_id)
 
     # Return streaming response
     return StreamingResponse(
