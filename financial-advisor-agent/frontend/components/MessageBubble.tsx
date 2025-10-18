@@ -1,5 +1,7 @@
 import { Message } from '@/lib/types'
 import ReactMarkdown from 'react-markdown'
+import CalendarEventCard from './CalendarEventCard'
+import ContactCard from './ContactCard'
 
 interface MessageBubbleProps {
   message: Message
@@ -69,16 +71,39 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           )}
         </div>
 
-        <div
-          className={`text-xs text-gray-500 dark:text-gray-400 mt-1 ${
-            isUser ? 'text-right' : 'text-left'
-          }`}
-        >
-          {new Date(message.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </div>
+        {/* Rich Content Cards */}
+        {!isUser && (
+          <>
+            {/* Calendar Events */}
+            {message.metadata?.calendarEvents && message.metadata.calendarEvents.length > 0 && (
+              <div className="mt-3">
+                {message.metadata.calendarEvents.map((event) => (
+                  <CalendarEventCard key={event.id} event={event} />
+                ))}
+              </div>
+            )}
+
+            {/* Contacts */}
+            {message.metadata?.contacts && message.metadata.contacts.length > 0 && (
+              <div className="mt-3">
+                {message.metadata.contacts.map((contact) => (
+                  <ContactCard key={contact.id} contact={contact} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div
+        className={`text-xs text-gray-500 dark:text-gray-400 mt-1 ${
+          isUser ? 'text-right' : 'text-left'
+        }`}
+      >
+        {new Date(message.timestamp).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })}
       </div>
     </div>
   )
