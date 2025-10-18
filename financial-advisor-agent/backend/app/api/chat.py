@@ -230,10 +230,9 @@ def stream_chat(
 
 
 @router.post("/message", response_model=ChatResponse)
-async def send_message(
+def send_message(
     request: ChatRequest,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     """
     Send a chat message and get a complete response (non-streaming).
@@ -243,11 +242,14 @@ async def send_message(
     """
 
     # Get or create conversation
-    conversation = await get_or_create_conversation(db, user, request.conversation_id)
+    conversation = get_or_create_conversation(db, None, request.conversation_id)
+
+    # Get user from conversation
+    user = db.query(User).filter(User.id == conversation.user_id).first()
 
     try:
         # Save user message
-        user_msg = await save_message(db, conversation, "user", request.message)
+        user_msg = save_message(db, conversation, "user", request.message)
 
         # Create agent with user context
         agent_executor = create_financial_advisor_agent(user)
@@ -261,7 +263,7 @@ async def send_message(
         }
 
         # Get agent response
-        response = await agent_executor.ainvoke(
+        response = agent_executor.invoke(
             {"messages": [HumanMessage(content=request.message)]},
             config=config,
         )
@@ -288,14 +290,14 @@ async def send_message(
                 })
 
         # Save assistant message
-        assistant_msg = await save_message(
+        assistant_msg = save_message(
             db, conversation, "assistant", assistant_message.content
         )
 
         # Update metadata
         if tool_calls:
             assistant_msg.message_metadata = {"tool_calls": tool_calls}
-            await db.commit()
+            db.commit()
 
         return ChatResponse(
             response=assistant_message.content,
@@ -309,21 +311,19 @@ async def send_message(
 
 
 @router.get("/conversations")
-async def list_conversations(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+def list_conversations(
+    db: Session = Depends(get_db),
 ):
     """List all conversations for the current user."""
 
-    from sqlalchemy import select
+    # Get first user (for testing without auth)
+    user = db.query(User).first()
+    if not user:
+        return []
 
-    result = await db.execute(
-        select(Conversation)
-        .where(Conversation.user_id == user.id)
-        .order_by(Conversation.updated_at.desc())
-    )
-
-    conversations = result.scalars().all()
+    conversations = db.query(Conversation).filter(
+        Conversation.user_id == user.id
+    ).order_by(Conversation.updated_at.desc()).all()
 
     return [
         {
@@ -337,28 +337,26 @@ async def list_conversations(
 
 
 @router.get("/conversations/{conversation_id}/messages")
-async def get_conversation_messages(
+def get_conversation_messages(
     conversation_id: str,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     """Get all messages in a conversation."""
 
-    from sqlalchemy import select
+    # Get first user (for testing without auth)
+    user = db.query(User).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
     # Verify conversation ownership
-    conversation = await db.get(Conversation, conversation_id)
+    conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     if not conversation or conversation.user_id != user.id:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     # Get messages
-    result = await db.execute(
-        select(MessageModel)
-        .where(MessageModel.conversation_id == conversation_id)
-        .order_by(MessageModel.created_at.asc())
-    )
-
-    messages = result.scalars().all()
+    messages = db.query(MessageModel).filter(
+        MessageModel.conversation_id == conversation_id
+    ).order_by(MessageModel.created_at.asc()).all()
 
     return [
         {
@@ -373,20 +371,24 @@ async def get_conversation_messages(
 
 
 @router.delete("/conversations/{conversation_id}")
-async def delete_conversation(
+def delete_conversation(
     conversation_id: str,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     """Delete a conversation and all its messages."""
 
+    # Get first user (for testing without auth)
+    user = db.query(User).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     # Verify conversation ownership
-    conversation = await db.get(Conversation, conversation_id)
+    conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     if not conversation or conversation.user_id != user.id:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     # Delete conversation (cascade will delete messages)
-    await db.delete(conversation)
-    await db.commit()
+    db.delete(conversation)
+    db.commit()
 
     return {"status": "deleted", "conversation_id": conversation_id}
